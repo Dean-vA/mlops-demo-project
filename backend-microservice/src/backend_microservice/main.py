@@ -94,3 +94,4 @@ async def startup_event():
     except Exception as e:
         logger.warning(f"Could not pre-load model: {e}")
         logger.info("Model will be loaded on first request")
+
