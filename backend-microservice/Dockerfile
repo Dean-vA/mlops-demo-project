@@ -4,6 +4,12 @@ FROM python:3.11-slim
 # Set working directory
 WORKDIR /app/src/backend_microservice
 
+# Install system dependencies including C++ compiler
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
 # Install Poetry
 RUN pip install poetry==2.1.3
 
