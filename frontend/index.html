@@ -283,6 +283,57 @@
             margin-top: 5px;
         }
 
+        .segments {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .segment-item {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .segment-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .segment-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 10px;
+            gap: 15px;
+        }
+
+        .segment-time {
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .segment-duration {
+            color: #666;
+            font-size: 0.85rem;
+            font-style: italic;
+        }
+
+        .segment-text {
+            font-size: 1rem;
+            line-height: 1.5;
+            color: #333;
+        }
+
         .timestamps {
             background: #f8f9fa;
             border-radius: 10px;
@@ -386,17 +437,18 @@
 
             <div class="controls">
                 <div class="control-group">
+                    <label for="segmentsToggle">Show Segment Breakdown</label>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="segmentsToggle" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="control-group">
                     <label for="timestampsToggle">Include Word Timestamps</label>
                     <label class="toggle-switch">
                         <input type="checkbox" id="timestampsToggle" checked>
                         <span class="slider"></span>
                     </label>
-                </div>
-                <div class="control-group">
-                    <label>Processing Options</label>
-                    <div style="font-size: 0.9rem; color: #666; margin-top: 5px;">
-                        Advanced chunking options coming soon
-                    </div>
                 </div>
             </div>
 
@@ -424,6 +476,15 @@
                         <div class="stat-value" id="wordCount">-</div>
                         <div class="stat-label">Words</div>
                     </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="segmentCount">-</div>
+                        <div class="stat-label">Segments</div>
+                    </div>
+                </div>
+
+                <div class="result-section" id="segmentsSection" style="display: none;">
+                    <h3>📑 Segments</h3>
+                    <div class="segments" id="segments"></div>
                 </div>
 
                 <div class="result-section" id="timestampsSection" style="display: none;">
@@ -439,7 +500,7 @@
     <div class="status-indicator" id="statusIndicator">Checking API status...</div>
 
     <script>
-        const API_BASE_URL = 'http://194.171.191.226:3569';
+        const API_BASE_URL = 'http://localhost:3569';
 
         let selectedFile = null;
 
@@ -456,9 +517,13 @@
         const transcriptionText = document.getElementById('transcriptionText');
         const processingTime = document.getElementById('processingTime');
         const wordCount = document.getElementById('wordCount');
+        const segmentCount = document.getElementById('segmentCount');
         const timestamps = document.getElementById('timestamps');
+        const segments = document.getElementById('segments');
+        const segmentsSection = document.getElementById('segmentsSection');
         const timestampsSection = document.getElementById('timestampsSection');
         const timestampsToggle = document.getElementById('timestampsToggle');
+        const segmentsToggle = document.getElementById('segmentsToggle');
         const errorMessage = document.getElementById('errorMessage');
         const statusIndicator = document.getElementById('statusIndicator');
 
@@ -559,7 +624,8 @@
                 // Prepare form data
                 const formData = new FormData();
                 formData.append('file', selectedFile);
-                formData.append('return_timestamps', timestampsToggle.checked);
+                // Always request timestamps from API - we'll control display in frontend
+                formData.append('return_timestamps', true);
 
                 // Make API request
                 const response = await axios.post(`${API_BASE_URL}/transcribe`, formData, {
@@ -589,16 +655,59 @@
         });
 
         function displayResults(data) {
+            console.log('API Response:', data); // Debug log
+
+            // Handle the actual API response format where data.text is an array
+            let transcriptionText_content = '';
+            wordTimestamps = []; // Store globally for toggle functionality
+            segmentTimestamps = []; // Store globally for toggle functionality
+
+            if (Array.isArray(data.text) && data.text.length > 0) {
+                // Extract text from the first result in the array
+                transcriptionText_content = data.text[0].text || 'No transcription found';
+
+                // Extract word timestamps if available
+                if (data.text[0].timestamp && data.text[0].timestamp.word) {
+                    wordTimestamps = data.text[0].timestamp.word;
+                }
+
+                // Extract segment timestamps if available
+                if (data.text[0].timestamp && data.text[0].timestamp.segment) {
+                    segmentTimestamps = data.text[0].timestamp.segment;
+                }
+            } else if (typeof data.text === 'string') {
+                transcriptionText_content = data.text;
+            } else {
+                transcriptionText_content = 'No transcription text found';
+            }
+
             // Display transcription text
-            transcriptionText.textContent = data.text;
+            transcriptionText.textContent = transcriptionText_content;
 
             // Display stats
-            processingTime.textContent = data.processing_time_sec.toFixed(2);
-            wordCount.textContent = data.text.split(' ').filter(word => word.length > 0).length;
+            processingTime.textContent = (data.processing_time_sec || 0).toFixed(2);
 
-            // Display timestamps if available
-            if (data.timestamps && data.timestamps.word && data.timestamps.word.length > 0) {
-                displayTimestamps(data.timestamps.word);
+            // Calculate word count safely
+            let words = 0;
+            if (typeof transcriptionText_content === 'string' && transcriptionText_content.length > 0) {
+                words = transcriptionText_content.split(' ').filter(word => word.trim().length > 0).length;
+            }
+            wordCount.textContent = words;
+
+            // Display segment count
+            segmentCount.textContent = segmentTimestamps.length;
+
+            // Display segments if available and enabled
+            if (segmentTimestamps && Array.isArray(segmentTimestamps) && segmentTimestamps.length > 0 && segmentsToggle.checked) {
+                displaySegments(segmentTimestamps);
+                segmentsSection.style.display = 'block';
+            } else {
+                segmentsSection.style.display = 'none';
+            }
+
+            // Display timestamps if available and enabled
+            if (wordTimestamps && Array.isArray(wordTimestamps) && wordTimestamps.length > 0 && timestampsToggle.checked) {
+                displayTimestamps(wordTimestamps);
                 timestampsSection.style.display = 'block';
             } else {
                 timestampsSection.style.display = 'none';
@@ -606,6 +715,28 @@
 
             // Show results
             results.classList.add('show');
+        }
+
+        function displaySegments(segmentTimestamps) {
+            segments.innerHTML = '';
+
+            segmentTimestamps.forEach((segment, index) => {
+                const segmentItem = document.createElement('div');
+                segmentItem.className = 'segment-item';
+
+                // Calculate duration
+                const duration = (segment.end - segment.start).toFixed(2);
+
+                segmentItem.innerHTML = `
+                    <div class="segment-header">
+                        <div class="segment-time">${segment.start.toFixed(2)}s - ${segment.end.toFixed(2)}s</div>
+                        <div class="segment-duration">${duration}s duration</div>
+                    </div>
+                    <div class="segment-text">${segment.segment}</div>
+                `;
+
+                segments.appendChild(segmentItem);
+            });
         }
 
         function displayTimestamps(wordTimestamps) {
@@ -633,7 +764,31 @@
             errorMessage.style.display = 'none';
         }
 
+        // Toggle handlers for showing/hiding sections after transcription
+        timestampsToggle.addEventListener('change', () => {
+            if (results.classList.contains('show')) {
+                if (timestampsToggle.checked && wordTimestamps.length > 0) {
+                    timestampsSection.style.display = 'block';
+                } else {
+                    timestampsSection.style.display = 'none';
+                }
+            }
+        });
+
+        segmentsToggle.addEventListener('change', () => {
+            if (results.classList.contains('show')) {
+                if (segmentsToggle.checked && segmentTimestamps.length > 0) {
+                    segmentsSection.style.display = 'block';
+                } else {
+                    segmentsSection.style.display = 'none';
+                }
+            }
+        });
+
         // Initialize
+        let wordTimestamps = [];
+        let segmentTimestamps = [];
+
         checkApiHealth();
         setInterval(checkApiHealth, 30000); // Check every 30 seconds
     </script>
