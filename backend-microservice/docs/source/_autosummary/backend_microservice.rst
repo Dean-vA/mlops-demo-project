@@ -3,7 +3,7 @@
 
 .. automodule:: backend_microservice
 
-   
+
 .. rubric:: Modules
 
 .. autosummary::
