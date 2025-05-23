@@ -50,6 +50,178 @@
             margin-bottom: 30px;
         }
 
+        .recording-tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .tab-button {
+            background: none;
+            border: none;
+            padding: 15px 25px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #666;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .tab-button.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-button:hover {
+            color: #667eea;
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .mic-area {
+            border: 3px dashed #ddd;
+            border-radius: 15px;
+            padding: 60px 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mic-area:hover, .mic-area.recording {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.05);
+            transform: translateY(-2px);
+        }
+
+        .mic-area.recording {
+            border-color: #dc3545;
+            background: rgba(220, 53, 69, 0.05);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+        }
+
+        .mic-icon {
+            font-size: 4rem;
+            color: #ddd;
+            margin-bottom: 20px;
+            transition: color 0.3s ease;
+        }
+
+        .mic-area:hover .mic-icon, .mic-area.recording .mic-icon {
+            color: #667eea;
+        }
+
+        .mic-area.recording .mic-icon {
+            color: #dc3545;
+        }
+
+        .mic-text {
+            font-size: 1.2rem;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .mic-subtext {
+            color: #999;
+            font-size: 0.9rem;
+        }
+
+        .recording-controls {
+            margin-top: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .recording-timer {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #dc3545;
+            font-family: 'Courier New', monospace;
+        }
+
+        .recording-visualizer {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            height: 40px;
+        }
+
+        .wave-bar {
+            width: 4px;
+            background: #667eea;
+            border-radius: 2px;
+            animation: wave 1s ease-in-out infinite;
+        }
+
+        .wave-bar:nth-child(1) { animation-delay: 0s; }
+        .wave-bar:nth-child(2) { animation-delay: 0.1s; }
+        .wave-bar:nth-child(3) { animation-delay: 0.2s; }
+        .wave-bar:nth-child(4) { animation-delay: 0.3s; }
+        .wave-bar:nth-child(5) { animation-delay: 0.4s; }
+
+        @keyframes wave {
+            0%, 40%, 100% {
+                height: 10px;
+                background: #ddd;
+            }
+            20% {
+                height: 40px;
+                background: #667eea;
+            }
+        }
+
+        .recorded-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: left;
+        }
+
+        .replay-btn, .rerecord-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 10px 5px 0 0;
+            transition: all 0.3s ease;
+        }
+
+        .rerecord-btn {
+            background: #6c757d;
+        }
+
+        .replay-btn:hover {
+            background: #218838;
+            transform: translateY(-1px);
+        }
+
+        .rerecord-btn:hover {
+            background: #5a6268;
+            transform: translateY(-1px);
+        }
+
         .upload-area {
             border: 3px dashed #ddd;
             border-radius: 15px;
@@ -283,6 +455,57 @@
             margin-top: 5px;
         }
 
+        .segments {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .segment-item {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .segment-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .segment-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 10px;
+            gap: 15px;
+        }
+
+        .segment-time {
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .segment-duration {
+            color: #666;
+            font-size: 0.85rem;
+            font-style: italic;
+        }
+
+        .segment-text {
+            font-size: 1rem;
+            line-height: 1.5;
+            color: #333;
+        }
+
         .timestamps {
             background: #f8f9fa;
             border-radius: 10px;
@@ -371,20 +594,65 @@
         </div>
 
         <div class="card">
-            <div class="upload-area" id="uploadArea">
-                <div class="upload-icon">📁</div>
-                <div class="upload-text">Drop your audio file here or click to browse</div>
-                <div class="upload-subtext">Supports .wav and .flac files</div>
-                <input type="file" id="fileInput" accept=".wav,.flac" style="display: none;">
-            </div>
+            <!-- Recording Interface -->
+            <div class="recording-section" id="recordingSection">
+                <div class="recording-tabs">
+                    <button class="tab-button active" id="fileTab">📁 Audio File</button>
+                    <button class="tab-button" id="micTab">🎤 Microphone</button>
+                </div>
 
-            <div class="file-info" id="fileInfo">
-                <strong>Selected file:</strong> <span id="fileName"></span><br>
-                <strong>Size:</strong> <span id="fileSize"></span><br>
-                <strong>Type:</strong> <span id="fileType"></span>
+                <!-- File Upload Tab -->
+                <div class="tab-content active" id="fileContent">
+                    <div class="upload-area" id="uploadArea">
+                        <div class="upload-icon">📁</div>
+                        <div class="upload-text">Drop your audio file here or click to browse</div>
+                        <div class="upload-subtext">Supports .wav and .flac files</div>
+                        <input type="file" id="fileInput" accept=".wav,.flac" style="display: none;">
+                    </div>
+
+                    <div class="file-info" id="fileInfo">
+                        <strong>Selected file:</strong> <span id="fileName"></span><br>
+                        <strong>Size:</strong> <span id="fileSize"></span><br>
+                        <strong>Type:</strong> <span id="fileType"></span>
+                    </div>
+                </div>
+
+                <!-- Microphone Tab -->
+                <div class="tab-content" id="micContent">
+                    <div class="mic-area" id="micArea">
+                        <div class="mic-icon" id="micIcon">🎤</div>
+                        <div class="mic-text" id="micText">Click to start recording</div>
+                        <div class="mic-subtext">Record directly from your microphone</div>
+
+                        <div class="recording-controls" id="recordingControls" style="display: none;">
+                            <div class="recording-timer" id="recordingTimer">00:00</div>
+                            <div class="recording-visualizer" id="recordingVisualizer">
+                                <div class="wave-bar"></div>
+                                <div class="wave-bar"></div>
+                                <div class="wave-bar"></div>
+                                <div class="wave-bar"></div>
+                                <div class="wave-bar"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="recorded-info" id="recordedInfo" style="display: none;">
+                        <strong>Recording:</strong> <span id="recordedDuration"></span><br>
+                        <strong>Quality:</strong> 44.1kHz, 16-bit WAV<br>
+                        <button class="replay-btn" id="replayBtn">🔊 Play Recording</button>
+                        <button class="rerecord-btn" id="rerecordBtn">🔄 Record Again</button>
+                    </div>
+                </div>
             </div>
 
             <div class="controls">
+                <div class="control-group">
+                    <label for="segmentsToggle">Show Segment Breakdown</label>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="segmentsToggle" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
                 <div class="control-group">
                     <label for="timestampsToggle">Include Word Timestamps</label>
                     <label class="toggle-switch">
@@ -392,16 +660,10 @@
                         <span class="slider"></span>
                     </label>
                 </div>
-                <div class="control-group">
-                    <label>Processing Options</label>
-                    <div style="font-size: 0.9rem; color: #666; margin-top: 5px;">
-                        Advanced chunking options coming soon
-                    </div>
-                </div>
             </div>
 
             <button class="transcribe-btn" id="transcribeBtn" disabled>
-                Select an audio file to transcribe
+                Select an audio file or record audio to transcribe
             </button>
 
             <div class="loading" id="loading">
@@ -424,6 +686,15 @@
                         <div class="stat-value" id="wordCount">-</div>
                         <div class="stat-label">Words</div>
                     </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="segmentCount">-</div>
+                        <div class="stat-label">Segments</div>
+                    </div>
+                </div>
+
+                <div class="result-section" id="segmentsSection" style="display: none;">
+                    <h3>📑 Segments</h3>
+                    <div class="segments" id="segments"></div>
                 </div>
 
                 <div class="result-section" id="timestampsSection" style="display: none;">
@@ -442,6 +713,11 @@
         const API_BASE_URL = 'http://194.171.191.226:3569';
 
         let selectedFile = null;
+        let recordedAudioBlob = null;
+        let mediaRecorder = null;
+        let audioStream = null;
+        let recordingTimerInterval = null;
+        let recordingStartTime = null;
 
         // DOM elements
         const uploadArea = document.getElementById('uploadArea');
@@ -456,11 +732,30 @@
         const transcriptionText = document.getElementById('transcriptionText');
         const processingTime = document.getElementById('processingTime');
         const wordCount = document.getElementById('wordCount');
+        const segmentCount = document.getElementById('segmentCount');
         const timestamps = document.getElementById('timestamps');
+        const segments = document.getElementById('segments');
+        const segmentsSection = document.getElementById('segmentsSection');
         const timestampsSection = document.getElementById('timestampsSection');
         const timestampsToggle = document.getElementById('timestampsToggle');
+        const segmentsToggle = document.getElementById('segmentsToggle');
         const errorMessage = document.getElementById('errorMessage');
         const statusIndicator = document.getElementById('statusIndicator');
+
+        // Microphone elements
+        const fileTab = document.getElementById('fileTab');
+        const micTab = document.getElementById('micTab');
+        const fileContent = document.getElementById('fileContent');
+        const micContent = document.getElementById('micContent');
+        const micArea = document.getElementById('micArea');
+        const micIcon = document.getElementById('micIcon');
+        const micText = document.getElementById('micText');
+        const recordingControls = document.getElementById('recordingControls');
+        const recordingTimer = document.getElementById('recordingTimer');
+        const recordedInfo = document.getElementById('recordedInfo');
+        const recordedDuration = document.getElementById('recordedDuration');
+        const replayBtn = document.getElementById('replayBtn');
+        const rerecordBtn = document.getElementById('rerecordBtn');
 
         // Check API health status
         async function checkApiHealth() {
@@ -476,6 +771,220 @@
                 statusIndicator.textContent = 'API Offline';
                 statusIndicator.className = 'status-indicator status-unhealthy';
                 console.error('API health check failed:', error);
+            }
+        }
+
+        // Tab switching handlers
+        fileTab.addEventListener('click', () => switchTab('file'));
+        micTab.addEventListener('click', () => switchTab('mic'));
+
+        // Microphone handlers
+        micArea.addEventListener('click', handleMicClick);
+        replayBtn.addEventListener('click', playRecordedAudio);
+        rerecordBtn.addEventListener('click', startNewRecording);
+
+        function switchTab(tab) {
+            if (tab === 'file') {
+                fileTab.classList.add('active');
+                micTab.classList.remove('active');
+                fileContent.classList.add('active');
+                micContent.classList.remove('active');
+            } else {
+                micTab.classList.add('active');
+                fileTab.classList.remove('active');
+                micContent.classList.add('active');
+                fileContent.classList.remove('active');
+            }
+
+            // Reset states when switching tabs
+            resetTranscriptionState();
+        }
+
+        async function handleMicClick() {
+            if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+                await startRecording();
+            } else {
+                stopRecording();
+            }
+        }
+
+        async function startRecording() {
+            try {
+                // Request microphone access
+                audioStream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        sampleRate: 44100,
+                        channelCount: 1,
+                        echoCancellation: true,
+                        noiseSuppression: true
+                    }
+                });
+
+                // Create MediaRecorder
+                mediaRecorder = new MediaRecorder(audioStream, {
+                    mimeType: 'audio/webm;codecs=opus'
+                });
+
+                const audioChunks = [];
+
+                mediaRecorder.ondataavailable = (event) => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    recordedAudioBlob = await convertToWav(audioBlob);
+                    handleRecordingComplete();
+                };
+
+                // Start recording
+                mediaRecorder.start();
+                recordingStartTime = Date.now();
+
+                // Update UI
+                micArea.classList.add('recording');
+                micIcon.textContent = '⏹️';
+                micText.textContent = 'Click to stop recording';
+                recordingControls.style.display = 'flex';
+
+                // Start timer
+                startRecordingTimer();
+
+            } catch (error) {
+                console.error('Error accessing microphone:', error);
+                showError('Could not access microphone. Please check permissions.');
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+                audioStream.getTracks().forEach(track => track.stop());
+
+                // Update UI
+                micArea.classList.remove('recording');
+                recordingControls.style.display = 'none';
+                clearInterval(recordingTimerInterval);
+            }
+        }
+
+        function startRecordingTimer() {
+            recordingTimerInterval = setInterval(() => {
+                const elapsed = Date.now() - recordingStartTime;
+                const minutes = Math.floor(elapsed / 60000);
+                const seconds = Math.floor((elapsed % 60000) / 1000);
+                recordingTimer.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }, 1000);
+        }
+
+        async function convertToWav(audioBlob) {
+            return new Promise((resolve) => {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const fileReader = new FileReader();
+
+                fileReader.onload = async function(e) {
+                    try {
+                        const arrayBuffer = e.target.result;
+                        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+                        // Convert to WAV
+                        const wavBlob = audioBufferToWav(audioBuffer);
+                        resolve(wavBlob);
+                    } catch (error) {
+                        console.error('Error converting audio:', error);
+                        // Fallback: just change the filename to .wav even though it's webm
+                        // The backend might be able to handle it
+                        resolve(audioBlob);
+                    }
+                };
+
+                fileReader.readAsArrayBuffer(audioBlob);
+            });
+        }
+
+        function audioBufferToWav(buffer) {
+            const length = buffer.length;
+            const sampleRate = buffer.sampleRate;
+            const numberOfChannels = buffer.numberOfChannels;
+            const arrayBuffer = new ArrayBuffer(44 + length * numberOfChannels * 2);
+            const view = new DataView(arrayBuffer);
+
+            // WAV header
+            const writeString = (offset, string) => {
+                for (let i = 0; i < string.length; i++) {
+                    view.setUint8(offset + i, string.charCodeAt(i));
+                }
+            };
+
+            writeString(0, 'RIFF');
+            view.setUint32(4, 36 + length * numberOfChannels * 2, true);
+            writeString(8, 'WAVE');
+            writeString(12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true);
+            view.setUint16(22, numberOfChannels, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * numberOfChannels * 2, true);
+            view.setUint16(32, numberOfChannels * 2, true);
+            view.setUint16(34, 16, true);
+            writeString(36, 'data');
+            view.setUint32(40, length * numberOfChannels * 2, true);
+
+            // Convert audio data
+            let offset = 44;
+            for (let i = 0; i < length; i++) {
+                for (let channel = 0; channel < numberOfChannels; channel++) {
+                    const sample = Math.max(-1, Math.min(1, buffer.getChannelData(channel)[i]));
+                    view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
+                    offset += 2;
+                }
+            }
+
+            return new Blob([arrayBuffer], { type: 'audio/wav' });
+        }
+
+        function handleRecordingComplete() {
+            const duration = Math.round((Date.now() - recordingStartTime) / 1000);
+            const minutes = Math.floor(duration / 60);
+            const seconds = duration % 60;
+
+            recordedDuration.textContent = `${minutes}m ${seconds}s`;
+            recordedInfo.style.display = 'block';
+
+            micIcon.textContent = '✅';
+            micText.textContent = 'Recording complete';
+
+            transcribeBtn.disabled = false;
+            transcribeBtn.textContent = 'Transcribe Recording';
+
+            // Hide previous results
+            results.classList.remove('show');
+            hideError();
+        }
+
+        function playRecordedAudio() {
+            if (recordedAudioBlob) {
+                const audio = new Audio(URL.createObjectURL(recordedAudioBlob));
+                audio.play();
+            }
+        }
+
+        function startNewRecording() {
+            recordedAudioBlob = null;
+            recordedInfo.style.display = 'none';
+            micIcon.textContent = '🎤';
+            micText.textContent = 'Click to start recording';
+            transcribeBtn.disabled = true;
+            transcribeBtn.textContent = 'Select an audio file or record audio to transcribe';
+            resetTranscriptionState();
+        }
+
+        function resetTranscriptionState() {
+            results.classList.remove('show');
+            hideError();
+            if (!selectedFile && !recordedAudioBlob) {
+                transcribeBtn.disabled = true;
+                transcribeBtn.textContent = 'Select an audio file or record audio to transcribe';
             }
         }
 
@@ -547,7 +1056,8 @@
 
         // Transcription handler
         transcribeBtn.addEventListener('click', async () => {
-            if (!selectedFile) return;
+            const audioToTranscribe = recordedAudioBlob || selectedFile;
+            if (!audioToTranscribe) return;
 
             try {
                 // Show loading state
@@ -558,8 +1068,17 @@
 
                 // Prepare form data
                 const formData = new FormData();
-                formData.append('file', selectedFile);
-                formData.append('return_timestamps', timestampsToggle.checked);
+
+                if (recordedAudioBlob) {
+                    // Use recorded audio - send as WAV file
+                    formData.append('file', recordedAudioBlob, 'recording.wav');
+                } else {
+                    // Use uploaded file
+                    formData.append('file', selectedFile);
+                }
+
+                // Always request timestamps from API - we'll control display in frontend
+                formData.append('return_timestamps', true);
 
                 // Make API request
                 const response = await axios.post(`${API_BASE_URL}/transcribe`, formData, {
@@ -589,16 +1108,59 @@
         });
 
         function displayResults(data) {
+            console.log('API Response:', data); // Debug log
+
+            // Handle the actual API response format where data.text is an array
+            let transcriptionText_content = '';
+            wordTimestamps = []; // Store globally for toggle functionality
+            segmentTimestamps = []; // Store globally for toggle functionality
+
+            if (Array.isArray(data.text) && data.text.length > 0) {
+                // Extract text from the first result in the array
+                transcriptionText_content = data.text[0].text || 'No transcription found';
+
+                // Extract word timestamps if available
+                if (data.text[0].timestamp && data.text[0].timestamp.word) {
+                    wordTimestamps = data.text[0].timestamp.word;
+                }
+
+                // Extract segment timestamps if available
+                if (data.text[0].timestamp && data.text[0].timestamp.segment) {
+                    segmentTimestamps = data.text[0].timestamp.segment;
+                }
+            } else if (typeof data.text === 'string') {
+                transcriptionText_content = data.text;
+            } else {
+                transcriptionText_content = 'No transcription text found';
+            }
+
             // Display transcription text
-            transcriptionText.textContent = data.text;
+            transcriptionText.textContent = transcriptionText_content;
 
             // Display stats
-            processingTime.textContent = data.processing_time_sec.toFixed(2);
-            wordCount.textContent = data.text.split(' ').filter(word => word.length > 0).length;
+            processingTime.textContent = (data.processing_time_sec || 0).toFixed(2);
 
-            // Display timestamps if available
-            if (data.timestamps && data.timestamps.word && data.timestamps.word.length > 0) {
-                displayTimestamps(data.timestamps.word);
+            // Calculate word count safely
+            let words = 0;
+            if (typeof transcriptionText_content === 'string' && transcriptionText_content.length > 0) {
+                words = transcriptionText_content.split(' ').filter(word => word.trim().length > 0).length;
+            }
+            wordCount.textContent = words;
+
+            // Display segment count
+            segmentCount.textContent = segmentTimestamps.length;
+
+            // Display segments if available and enabled
+            if (segmentTimestamps && Array.isArray(segmentTimestamps) && segmentTimestamps.length > 0 && segmentsToggle.checked) {
+                displaySegments(segmentTimestamps);
+                segmentsSection.style.display = 'block';
+            } else {
+                segmentsSection.style.display = 'none';
+            }
+
+            // Display timestamps if available and enabled
+            if (wordTimestamps && Array.isArray(wordTimestamps) && wordTimestamps.length > 0 && timestampsToggle.checked) {
+                displayTimestamps(wordTimestamps);
                 timestampsSection.style.display = 'block';
             } else {
                 timestampsSection.style.display = 'none';
@@ -606,6 +1168,28 @@
 
             // Show results
             results.classList.add('show');
+        }
+
+        function displaySegments(segmentTimestamps) {
+            segments.innerHTML = '';
+
+            segmentTimestamps.forEach((segment, index) => {
+                const segmentItem = document.createElement('div');
+                segmentItem.className = 'segment-item';
+
+                // Calculate duration
+                const duration = (segment.end - segment.start).toFixed(2);
+
+                segmentItem.innerHTML = `
+                    <div class="segment-header">
+                        <div class="segment-time">${segment.start.toFixed(2)}s - ${segment.end.toFixed(2)}s</div>
+                        <div class="segment-duration">${duration}s duration</div>
+                    </div>
+                    <div class="segment-text">${segment.segment}</div>
+                `;
+
+                segments.appendChild(segmentItem);
+            });
         }
 
         function displayTimestamps(wordTimestamps) {
@@ -633,7 +1217,31 @@
             errorMessage.style.display = 'none';
         }
 
+        // Toggle handlers for showing/hiding sections after transcription
+        timestampsToggle.addEventListener('change', () => {
+            if (results.classList.contains('show')) {
+                if (timestampsToggle.checked && wordTimestamps.length > 0) {
+                    timestampsSection.style.display = 'block';
+                } else {
+                    timestampsSection.style.display = 'none';
+                }
+            }
+        });
+
+        segmentsToggle.addEventListener('change', () => {
+            if (results.classList.contains('show')) {
+                if (segmentsToggle.checked && segmentTimestamps.length > 0) {
+                    segmentsSection.style.display = 'block';
+                } else {
+                    segmentsSection.style.display = 'none';
+                }
+            }
+        });
+
         // Initialize
+        let wordTimestamps = [];
+        let segmentTimestamps = [];
+
         checkApiHealth();
         setInterval(checkApiHealth, 30000); // Check every 30 seconds
     </script>
