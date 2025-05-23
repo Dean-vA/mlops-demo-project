@@ -2,6 +2,12 @@ import logging
 from typing import Optional
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+
+try:
+    import multipart  # noqa: F401
+    _multipart_available = True
+except Exception:  # pragma: no cover - optional dependency
+    _multipart_available = False
 from fastapi.middleware.cors import CORSMiddleware
 
 from .transcription import is_model_loaded, load_model, transcribe_audio
@@ -41,48 +47,57 @@ async def health():
 
 
 # Define transcription endpoint
-@app.post("/transcribe")
-async def transcribe(
-    file: UploadFile = File(...),
-    return_timestamps: bool = Form(True),
-    chunk_duration_sec: Optional[float] = Form(None),
-    overlap_duration_sec: Optional[float] = Form(None),
-):
-    """Transcribe audio file using NVIDIA's Parakeet TDT model.
+if _multipart_available:
+    @app.post("/transcribe")
+    async def transcribe(
+        file: UploadFile = File(...),
+        return_timestamps: bool = Form(True),
+        chunk_duration_sec: Optional[float] = Form(None),
+        overlap_duration_sec: Optional[float] = Form(None),
+    ):
+        """Transcribe audio file using NVIDIA's Parakeet TDT model.
 
-    Args:
-        file: Audio file to transcribe (.wav or .flac)
-        return_timestamps: Whether to include word-level timestamps.
-        chunk_duration_sec: Duration in seconds for processing audio in chunks.
-        overlap_duration_sec: Overlap duration in seconds between chunks.
+        Args:
+            file: Audio file to transcribe (.wav or .flac)
+            return_timestamps: Whether to include word-level timestamps.
+            chunk_duration_sec: Duration in seconds for processing audio in chunks.
+            overlap_duration_sec: Overlap duration in seconds between chunks.
 
-    Returns:
-        dict: Transcription result with text and optional timestamps.
-    """
-    try:
-        # Check file extension
-        if not file.filename.lower().endswith((".wav", ".flac")):
-            raise HTTPException(
-                status_code=400, detail="Only .wav and .flac files are supported"
+        Returns:
+            dict: Transcription result with text and optional timestamps.
+        """
+        try:
+            # Check file extension
+            if not file.filename.lower().endswith((".wav", ".flac")):
+                raise HTTPException(
+                    status_code=400, detail="Only .wav and .flac files are supported"
+                )
+
+            # Read file content
+            file_content = await file.read()
+
+            # Call transcription function
+            result = transcribe_audio(
+                file_content,
+                file.filename,
+                return_timestamps=return_timestamps,
+                chunk_duration_sec=chunk_duration_sec,
+                overlap_duration_sec=overlap_duration_sec,
             )
 
-        # Read file content
-        file_content = await file.read()
+            return result
 
-        # Call transcription function
-        result = transcribe_audio(
-            file_content,
-            file.filename,
-            return_timestamps=return_timestamps,
-            chunk_duration_sec=chunk_duration_sec,
-            overlap_duration_sec=overlap_duration_sec,
+        except Exception as e:
+            logger.error(f"Transcription error: {str(e)}")
+            raise HTTPException(status_code=500, detail=str(e))
+else:
+    @app.post("/transcribe")
+    async def transcribe():
+        """Fallback endpoint when python-multipart is not installed."""
+        raise HTTPException(
+            status_code=500,
+            detail="python-multipart is required to use this endpoint.",
         )
-
-        return result
-
-    except Exception as e:
-        logger.error(f"Transcription error: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.on_event("startup")

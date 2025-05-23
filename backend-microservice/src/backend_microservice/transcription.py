@@ -8,8 +8,15 @@ import tempfile
 import time
 from typing import Any, BinaryIO, Dict, Optional, Union
 
-import nemo.collections.asr as nemo_asr
-import torch
+try:
+    import nemo.collections.asr as nemo_asr
+except ImportError:  # pragma: no cover - optional dependency may be missing
+    nemo_asr = None
+
+try:
+    import torch
+except ImportError:  # pragma: no cover - optional dependency may be missing
+    torch = None
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -33,6 +40,16 @@ def load_model():
         return _model
 
     logger.info(f"Loading model: {MODEL_NAME}")
+
+    if nemo_asr is None:
+        raise ImportError(
+            "nemo-toolkit is required to load the ASR model."
+        )
+
+    if torch is None:
+        raise ImportError(
+            "PyTorch is required to load the ASR model."
+        )
 
     # Create cache directory if it doesn't exist
     # os.makedirs(MODEL_CACHE_DIR, exist_ok=True)
