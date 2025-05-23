@@ -16,6 +16,7 @@ A FastAPI microservice for speech-to-text transcription using NVIDIA's Parakeet 
 ```
 mlops-demo-project/
 ├── backend-microservice/
+│   ├── docs
 │   ├── src/
 │   │   └── backend_microservice/
 │   │       ├── __init__.py
@@ -23,6 +24,9 @@ mlops-demo-project/
 │   │       └── transcription.py     # STT model integration
 │   ├── tests/
 │   │   └── __init__.py
+│   │   ├── test_main.py        # Unit tests for main app
+│   │   └── test_transcription.py # Unit tests for transcription
+|   ├── .pre-commit-config.yaml # Pre-commit hooks configuration
 │   ├── docker-compose.yml           # Docker Compose configuration
 │   ├── Dockerfile                   # Container definition
 │   ├── pyproject.toml              # Poetry dependencies
