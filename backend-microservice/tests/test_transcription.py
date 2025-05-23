@@ -7,30 +7,31 @@ from unittest.mock import Mock, patch
 
 from backend_microservice.transcription import is_model_loaded
 
+@pytest.fixture
+def reset_model_state():
+    """Fixture to reset the global model state before each test."""
+    import backend_microservice.transcription as trans_module
+    trans_module._model = None
+
+@pytest.mark.usefixtures("reset_model_state")
 
 def test_is_model_loaded_false():
     """Test is_model_loaded returns False when model is not loaded."""
-    # Reset the global model state
-    import backend_microservice.transcription as trans_module
-    trans_module._model = None
-    
     result = is_model_loaded()
     assert result is False
 
 
+@pytest.mark.usefixtures("reset_model_state")
 def test_is_model_loaded_true():
     """Test is_model_loaded returns True when model is loaded."""
-    # Set a mock model
     import backend_microservice.transcription as trans_module
     trans_module._model = Mock()
     
     result = is_model_loaded()
     assert result is True
-    
-    # Clean up
-    trans_module._model = None
 
 
+@pytest.mark.usefixtures("reset_model_state")
 @patch('backend_microservice.transcription.nemo_asr')
 @patch('backend_microservice.transcription.torch')
 def test_load_model_basic(mock_torch, mock_nemo_asr):
