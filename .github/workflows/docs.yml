@@ -15,21 +15,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Setup Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
-        
+
     - name: Install dependencies
       run: |
         pip install sphinx sphinx-rtd-theme
-        
+
     - name: Build docs
       run: |
         cd backend-microservice
         sphinx-build -b html docs/source docs/build/html
-        
+
     - name: Deploy to gh-pages branch
       uses: peaceiris/actions-gh-pages@v3
       with:
