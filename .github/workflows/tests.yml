@@ -1,0 +1,38 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+
+    - name: Install dependencies
+      working-directory: ./backend-microservice
+      run: |
+        poetry install --with dev
+
+    - name: Run tests with coverage
+      working-directory: ./backend-microservice
+      run: |
+        poetry run pytest --cov=backend_microservice --cov-report=xml --cov-report=html
+
+    - name: Upload coverage to GitHub
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: backend-microservice/htmlcov/
