@@ -3,18 +3,52 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to MLOps Demo Project - Parakeet STT API's documentation!
-=================================================================
+Parakeet STT API Documentation
+===============================
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+Welcome to the Parakeet STT API documentation!
 
+This API provides speech-to-text transcription using NVIDIA's Parakeet TDT 0.6B v2 model.
 
+Quick Start
+-----------
 
-Indices and tables
-==================
+1. Start the API:
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   .. code-block:: bash
+
+      cd backend-microservice
+      poetry run uvicorn backend_microservice.main:app --reload
+
+2. Make a request:
+
+   .. code-block:: bash
+
+      curl -X POST http://localhost:8000/transcribe \
+        -H "Content-Type: multipart/form-data" \
+        -F "file=@your_audio.wav"
+
+API Endpoints
+-------------
+
+**GET /** - Welcome message
+
+**GET /health** - Health check
+
+**POST /transcribe** - Transcribe audio file
+
+Parameters:
+- ``file``: Audio file (.wav or .flac)
+- ``return_timestamps``: Include timestamps (default: true)
+
+Code Documentation
+------------------
+
+All modules are automatically documented below:
+
+.. autosummary::
+   :toctree: _autosummary
+   :recursive:
+
+   backend_microservice
+
