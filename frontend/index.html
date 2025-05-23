@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parakeet STT - Speech to Text</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.0/axios.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .upload-area {
+            border: 3px dashed #ddd;
+            border-radius: 15px;
+            padding: 60px 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-area:hover, .upload-area.drag-over {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.05);
+            transform: translateY(-2px);
+        }
+
+        .upload-area.has-file {
+            border-color: #28a745;
+            background: rgba(40, 167, 69, 0.05);
+        }
+
+        .upload-icon {
+            font-size: 4rem;
+            color: #ddd;
+            margin-bottom: 20px;
+            transition: color 0.3s ease;
+        }
+
+        .upload-area:hover .upload-icon, .upload-area.drag-over .upload-icon {
+            color: #667eea;
+        }
+
+        .upload-area.has-file .upload-icon {
+            color: #28a745;
+        }
+
+        .upload-text {
+            font-size: 1.2rem;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .upload-subtext {
+            color: #999;
+            font-size: 0.9rem;
+        }
+
+        .file-info {
+            display: none;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: left;
+        }
+
+        .file-info.show {
+            display: block;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .control-group label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #667eea;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        .transcribe-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 30px;
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .transcribe-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .transcribe-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .loading.show {
+            display: flex;
+        }
+
+        .spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results {
+            display: none;
+            margin-top: 30px;
+        }
+
+        .results.show {
+            display: block;
+        }
+
+        .result-section {
+            margin-bottom: 25px;
+        }
+
+        .result-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .transcription-text {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            border-left: 4px solid #667eea;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-item {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .timestamps {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .timestamp-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .timestamp-item:last-child {
+            border-bottom: none;
+        }
+
+        .timestamp-word {
+            font-weight: 500;
+        }
+
+        .timestamp-time {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #dc3545;
+            margin-top: 20px;
+        }
+
+        .status-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            z-index: 1000;
+        }
+
+        .status-healthy {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-unhealthy {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .card {
+                padding: 20px;
+            }
+
+            .controls {
+                grid-template-columns: 1fr;
+            }
+
+            .stats {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎤 Parakeet STT</h1>
+            <p>High-quality speech-to-text transcription powered by NVIDIA's Parakeet TDT model</p>
+        </div>
+
+        <div class="card">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📁</div>
+                <div class="upload-text">Drop your audio file here or click to browse</div>
+                <div class="upload-subtext">Supports .wav and .flac files</div>
+                <input type="file" id="fileInput" accept=".wav,.flac" style="display: none;">
+            </div>
+
+            <div class="file-info" id="fileInfo">
+                <strong>Selected file:</strong> <span id="fileName"></span><br>
+                <strong>Size:</strong> <span id="fileSize"></span><br>
+                <strong>Type:</strong> <span id="fileType"></span>
+            </div>
+
+            <div class="controls">
+                <div class="control-group">
+                    <label for="timestampsToggle">Include Word Timestamps</label>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="timestampsToggle" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="control-group">
+                    <label>Processing Options</label>
+                    <div style="font-size: 0.9rem; color: #666; margin-top: 5px;">
+                        Advanced chunking options coming soon
+                    </div>
+                </div>
+            </div>
+
+            <button class="transcribe-btn" id="transcribeBtn" disabled>
+                Select an audio file to transcribe
+            </button>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <span>Transcribing your audio...</span>
+            </div>
+
+            <div class="results" id="results">
+                <div class="result-section">
+                    <h3>📝 Transcription</h3>
+                    <div class="transcription-text" id="transcriptionText"></div>
+                </div>
+
+                <div class="stats" id="stats">
+                    <div class="stat-item">
+                        <div class="stat-value" id="processingTime">-</div>
+                        <div class="stat-label">Processing Time (s)</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="wordCount">-</div>
+                        <div class="stat-label">Words</div>
+                    </div>
+                </div>
+
+                <div class="result-section" id="timestampsSection" style="display: none;">
+                    <h3>⏱️ Word Timestamps</h3>
+                    <div class="timestamps" id="timestamps"></div>
+                </div>
+            </div>
+
+            <div class="error" id="errorMessage" style="display: none;"></div>
+        </div>
+    </div>
+
+    <div class="status-indicator" id="statusIndicator">Checking API status...</div>
+
+    <script>
+        const API_BASE_URL = 'http://194.171.191.226:3569';
+
+        let selectedFile = null;
+
+        // DOM elements
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        const fileType = document.getElementById('fileType');
+        const transcribeBtn = document.getElementById('transcribeBtn');
+        const loading = document.getElementById('loading');
+        const results = document.getElementById('results');
+        const transcriptionText = document.getElementById('transcriptionText');
+        const processingTime = document.getElementById('processingTime');
+        const wordCount = document.getElementById('wordCount');
+        const timestamps = document.getElementById('timestamps');
+        const timestampsSection = document.getElementById('timestampsSection');
+        const timestampsToggle = document.getElementById('timestampsToggle');
+        const errorMessage = document.getElementById('errorMessage');
+        const statusIndicator = document.getElementById('statusIndicator');
+
+        // Check API health status
+        async function checkApiHealth() {
+            try {
+                const response = await axios.get(`${API_BASE_URL}/health`);
+                if (response.data.status === 'healthy') {
+                    statusIndicator.textContent = 'API Online';
+                    statusIndicator.className = 'status-indicator status-healthy';
+                } else {
+                    throw new Error('API not healthy');
+                }
+            } catch (error) {
+                statusIndicator.textContent = 'API Offline';
+                statusIndicator.className = 'status-indicator status-unhealthy';
+                console.error('API health check failed:', error);
+            }
+        }
+
+        // File upload handlers
+        uploadArea.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('dragover', handleDragOver);
+        uploadArea.addEventListener('dragleave', handleDragLeave);
+        uploadArea.addEventListener('drop', handleDrop);
+        fileInput.addEventListener('change', handleFileSelect);
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            uploadArea.classList.add('drag-over');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('drag-over');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('drag-over');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        }
+
+        function handleFileSelect(e) {
+            const files = e.target.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        }
+
+        function handleFile(file) {
+            // Validate file type
+            if (!file.name.toLowerCase().endsWith('.wav') && !file.name.toLowerCase().endsWith('.flac')) {
+                showError('Please select a .wav or .flac audio file.');
+                return;
+            }
+
+            selectedFile = file;
+
+            // Update UI
+            fileName.textContent = file.name;
+            fileSize.textContent = formatFileSize(file.size);
+            fileType.textContent = file.type || 'audio/' + file.name.split('.').pop();
+
+            uploadArea.classList.add('has-file');
+            uploadArea.querySelector('.upload-icon').textContent = '🎵';
+            uploadArea.querySelector('.upload-text').textContent = 'Audio file selected';
+
+            fileInfo.classList.add('show');
+            transcribeBtn.disabled = false;
+            transcribeBtn.textContent = 'Transcribe Audio';
+
+            // Hide previous results and errors
+            results.classList.remove('show');
+            hideError();
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        // Transcription handler
+        transcribeBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+
+            try {
+                // Show loading state
+                transcribeBtn.disabled = true;
+                loading.classList.add('show');
+                results.classList.remove('show');
+                hideError();
+
+                // Prepare form data
+                const formData = new FormData();
+                formData.append('file', selectedFile);
+                formData.append('return_timestamps', timestampsToggle.checked);
+
+                // Make API request
+                const response = await axios.post(`${API_BASE_URL}/transcribe`, formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data'
+                    },
+                    timeout: 300000 // 5 minutes timeout
+                });
+
+                // Display results
+                displayResults(response.data);
+
+            } catch (error) {
+                console.error('Transcription error:', error);
+                if (error.response) {
+                    showError(`API Error: ${error.response.data.detail || error.response.statusText}`);
+                } else if (error.request) {
+                    showError('Network error: Could not connect to the API. Make sure the backend is running on localhost:3569');
+                } else {
+                    showError(`Error: ${error.message}`);
+                }
+            } finally {
+                // Hide loading state
+                loading.classList.remove('show');
+                transcribeBtn.disabled = false;
+            }
+        });
+
+        function displayResults(data) {
+            // Display transcription text
+            transcriptionText.textContent = data.text;
+
+            // Display stats
+            processingTime.textContent = data.processing_time_sec.toFixed(2);
+            wordCount.textContent = data.text.split(' ').filter(word => word.length > 0).length;
+
+            // Display timestamps if available
+            if (data.timestamps && data.timestamps.word && data.timestamps.word.length > 0) {
+                displayTimestamps(data.timestamps.word);
+                timestampsSection.style.display = 'block';
+            } else {
+                timestampsSection.style.display = 'none';
+            }
+
+            // Show results
+            results.classList.add('show');
+        }
+
+        function displayTimestamps(wordTimestamps) {
+            timestamps.innerHTML = '';
+
+            wordTimestamps.forEach(item => {
+                const timestampItem = document.createElement('div');
+                timestampItem.className = 'timestamp-item';
+
+                timestampItem.innerHTML = `
+                    <span class="timestamp-word">${item.word}</span>
+                    <span class="timestamp-time">${item.start.toFixed(2)}s - ${item.end.toFixed(2)}s</span>
+                `;
+
+                timestamps.appendChild(timestampItem);
+            });
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+        }
+
+        function hideError() {
+            errorMessage.style.display = 'none';
+        }
+
+        // Initialize
+        checkApiHealth();
+        setInterval(checkApiHealth, 30000); // Check every 30 seconds
+    </script>
+</body>
+</html>
