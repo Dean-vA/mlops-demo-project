@@ -100,6 +100,51 @@ poetry<span class="w"> </span>run<span class="w"> </span>uvicorn<span class="w">
 - <code class="docutils literal notranslate"><span class="pre">file</span></code>: Audio file (.wav or .flac)
 - <code class="docutils literal notranslate"><span class="pre">return_timestamps</span></code>: Include timestamps (default: true)</p>
 </section>
+<section id="quick-start-development">
+<h2>Quick Start Development<a class="headerlink" href="#quick-start-development" title="Link to this heading"></a></h2>
+<p>Option 1: Docker (Recommended)</p>
+<ol class="arabic simple">
+<li><p><strong>Clone and navigate to the project</strong>:
+<code class="docutils literal notranslate"><span class="pre">`bash</span>
+<span class="pre">git</span> <span class="pre">clone</span> <span class="pre">&lt;your-repo-url&gt;</span>
+<span class="pre">cd</span> <span class="pre">mlops-demo-project/backend-microservice</span>
+<span class="pre">`</span></code></p></li>
+<li><p><strong>Build and run with Docker Compose</strong>:
+<code class="docutils literal notranslate"><span class="pre">`bash</span>
+<span class="pre">docker-compose</span> <span class="pre">up</span> <span class="pre">-d</span>
+<span class="pre">`</span></code></p></li>
+<li><p><strong>Check if the service is running</strong>:
+<code class="docutils literal notranslate"><span class="pre">`bash</span>
+<span class="pre">curl</span> <span class="pre">http://localhost:3569/health</span>
+<span class="pre">`</span></code></p></li>
+<li><p><strong>Access the API documentation</strong>:
+- Open your browser to <a class="reference external" href="http://localhost:3569/docs">http://localhost:3569/docs</a></p></li>
+</ol>
+<p>Option 2: Local Development</p>
+<ol class="arabic">
+<li><p><strong>Navigate to the backend directory</strong>:
+<code class="docutils literal notranslate"><span class="pre">`bash</span>
+<span class="pre">cd</span> <span class="pre">mlops-demo-project/backend-microservice</span>
+<span class="pre">`</span></code></p></li>
+<li><p><strong>Install dependencies with Poetry</strong>:
+<code class="docutils literal notranslate"><span class="pre">`bash</span>
+<span class="pre">poetry</span> <span class="pre">install</span>
+<span class="pre">`</span></code></p>
+<p>If you want to run on gpu you will need to install PyTorch with CUDA support. You can do this by running:</p>
+<p><code class="docutils literal notranslate"><span class="pre">`bash</span>
+<span class="pre">poetry</span> <span class="pre">run</span> <span class="pre">pip</span> <span class="pre">install</span> <span class="pre">torch</span> <span class="pre">torchvision</span> <span class="pre">torchaudio</span> <span class="pre">--index-url</span> <span class="pre">https://download.pytorch.org/whl/cu128</span>
+<span class="pre">`</span></code></p>
+</li>
+<li><p><strong>Activate the virtual environment</strong>:
+<code class="docutils literal notranslate"><span class="pre">`bash</span>
+<span class="pre">poetry</span> <span class="pre">shell</span>
+<span class="pre">`</span></code></p></li>
+<li><p><strong>Run the application</strong>:
+<code class="docutils literal notranslate"><span class="pre">`bash</span>
+<span class="pre">poetry</span> <span class="pre">run</span> <span class="pre">uvicorn</span> <span class="pre">backend_microservice.main:app</span> <span class="pre">--host</span> <span class="pre">0.0.0.0</span> <span class="pre">--port</span> <span class="pre">8000</span> <span class="pre">--reload</span>
+<span class="pre">`</span></code></p></li>
+</ol>
+</section>
 <section id="code-documentation">
 <h2>Code Documentation<a class="headerlink" href="#code-documentation" title="Link to this heading"></a></h2>
 <p>All modules are automatically documented below:</p>
