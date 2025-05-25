@@ -21,6 +21,9 @@ httpx = "^0.28.1"
 torch = ">=2.7.0,<3.0.0" # Upper bound added to ensure compatibility with future versions
 transformers = "^4.52.3"
 accelerate = "^1.7.0"
+azureml-core = "^1.60.0"
+azure-ai-ml = "^1.27.1"
+azure-identity = "^1.23.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "^25.1.0"
