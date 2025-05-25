@@ -41,6 +41,58 @@ Parameters:
 - ``file``: Audio file (.wav or .flac)
 - ``return_timestamps``: Include timestamps (default: true)
 
+Quick Start Development
+-----------
+
+Option 1: Docker (Recommended)
+
+1. **Clone and navigate to the project**:
+   ```bash
+   git clone <your-repo-url>
+   cd mlops-demo-project/backend-microservice
+   ```
+
+2. **Build and run with Docker Compose**:
+   ```bash
+   docker-compose up -d
+   ```
+
+3. **Check if the service is running**:
+   ```bash
+   curl http://localhost:3569/health
+   ```
+
+4. **Access the API documentation**:
+   - Open your browser to http://localhost:3569/docs
+
+Option 2: Local Development
+
+1. **Navigate to the backend directory**:
+   ```bash
+   cd mlops-demo-project/backend-microservice
+   ```
+
+2. **Install dependencies with Poetry**:
+   ```bash
+   poetry install
+   ```
+
+   If you want to run on gpu you will need to install PyTorch with CUDA support. You can do this by running:
+
+   ```bash
+   poetry run pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
+   ```
+
+3. **Activate the virtual environment**:
+   ```bash
+   poetry shell
+   ```
+
+4. **Run the application**:
+   ```bash
+   poetry run uvicorn backend_microservice.main:app --host 0.0.0.0 --port 8000 --reload
+   ```
+
 Code Documentation
 ------------------
 

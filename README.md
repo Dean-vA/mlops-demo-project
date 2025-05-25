@@ -86,6 +86,12 @@ mlops-demo-project/
    poetry install
    ```
 
+   If you want to run on gpu you will need to install PyTorch with CUDA support. You can do this by running:
+
+   ```bash
+   poetry run pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
+   ```
+
 3. **Activate the virtual environment**:
    ```bash
    poetry shell
