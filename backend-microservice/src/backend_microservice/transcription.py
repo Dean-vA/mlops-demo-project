@@ -9,9 +9,11 @@ import time
 from typing import Any, BinaryIO, Dict, Optional, Union
 
 import nemo.collections.asr as nemo_asr
-import torch
 
 from .gpu_utils import get_device
+
+# import torch
+
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -53,14 +55,14 @@ def load_model():
     _model.eval()
 
     # Enable GPU optimizations if on CUDA
-    if device == "cuda":
-        # Enable mixed precision for faster inference
-        _model = _model.half()  # Convert to FP16 for faster GPU inference
+    # if device == "cuda":
+    #     # Enable mixed precision for faster inference
+    #     _model = _model.half()  # Convert to FP16 for faster GPU inference
 
-        # Enable cuDNN autotuner for optimal performance
-        torch.backends.cudnn.benchmark = True
+    #     # Enable cuDNN autotuner for optimal performance
+    #     torch.backends.cudnn.benchmark = True
 
-        logger.info("GPU optimizations enabled: FP16 precision, cuDNN autotuner")
+    #     logger.info("GPU optimizations enabled: FP16 precision, cuDNN autotuner")
 
     # # For long-form audio, we can limit the attention window
     # # This comes at a cost of slight degradation in performance
