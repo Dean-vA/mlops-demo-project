@@ -33,12 +33,19 @@ async def root():
 # Define health check endpoint
 @app.get("/health")
 async def health():
-    """Health check endpoint.
+    """Health check endpoint with GPU status.
 
     Returns:
-        dict: Health status of the API.
+        dict: Health status of the API including GPU availability.
     """
-    return {"status": "healthy", "model_loaded": is_model_loaded()}
+    gpu_info = get_gpu_info()
+    return {
+        "status": "healthy",
+        "model_loaded": is_model_loaded(),
+        "gpu_available": gpu_info["cuda_available"],
+        "device": gpu_info["device"],
+        "gpu_name": gpu_info.get("gpu_name", "N/A"),
+    }
 
 
 @app.get("/gpu-info")
