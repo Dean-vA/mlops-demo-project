@@ -11,6 +11,8 @@ from typing import Any, BinaryIO, Dict, Optional, Union
 import nemo.collections.asr as nemo_asr
 import torch
 
+from .gpu_utils import get_device
+
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -37,8 +39,10 @@ def load_model():
     # Create cache directory if it doesn't exist
     # os.makedirs(MODEL_CACHE_DIR, exist_ok=True)
 
+    # Get device
+    device = get_device()
+
     # Load the model
-    device = "cuda" if torch.cuda.is_available() else "cpu"
     logger.info(f"Using device: {device}")
 
     _model = nemo_asr.models.ASRModel.from_pretrained(
@@ -47,6 +51,16 @@ def load_model():
     )
     _model = _model.to(device)
     _model.eval()
+
+    # Enable GPU optimizations if on CUDA
+    if device == "cuda":
+        # Enable mixed precision for faster inference
+        _model = _model.half()  # Convert to FP16 for faster GPU inference
+
+        # Enable cuDNN autotuner for optimal performance
+        torch.backends.cudnn.benchmark = True
+
+        logger.info("GPU optimizations enabled: FP16 precision, cuDNN autotuner")
 
     # # For long-form audio, we can limit the attention window
     # # This comes at a cost of slight degradation in performance
@@ -61,6 +75,11 @@ def load_model():
     #     logger.warning(f"Could not configure long-form audio settings: {e}")
 
     logger.info("Model loaded successfully")
+
+    # Log model info
+    total_params = sum(p.numel() for p in _model.parameters())
+    logger.info(f"Total model parameters: {total_params:,}")
+
     return _model
 
 
@@ -92,9 +111,7 @@ def transcribe_audio(
         _model = load_model()
 
     # Save audio to a temporary file
-    with tempfile.NamedTemporaryFile(
-        delete=False, suffix=os.path.splitext(filename)[1]
-    ) as temp_file:
+    with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(filename)[1]) as temp_file:
         if isinstance(audio_data, bytes):
             temp_file.write(audio_data)
         else:
