@@ -762,8 +762,16 @@
             try {
                 const response = await axios.get(`${API_BASE_URL}/health`);
                 if (response.data.status === 'healthy') {
-                    statusIndicator.textContent = 'API Online';
+                    const gpuStatus = response.data.gpu_available ? 'GPU' : 'CPU';
+                    const statusText = `API Online (${gpuStatus})`;
+                    statusIndicator.textContent = statusText;
                     statusIndicator.className = 'status-indicator status-healthy';
+
+                    // Also check detailed GPU info
+                    if (response.data.gpu_available) {
+                        const gpuInfo = await axios.get(`${API_BASE_URL}/gpu-info`);
+                        console.log('GPU Info:', gpuInfo.data);
+                    }
                 } else {
                     throw new Error('API not healthy');
                 }

@@ -4,6 +4,7 @@ from typing import Optional
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
+from .gpu_utils import get_gpu_info
 from .transcription import is_model_loaded, load_model, transcribe_audio
 
 # Set up logging
@@ -40,6 +41,16 @@ async def health():
     return {"status": "healthy", "model_loaded": is_model_loaded()}
 
 
+@app.get("/gpu-info")
+async def gpu_info():
+    """Get detailed GPU information.
+
+    Returns:
+        dict: Detailed GPU information including memory usage.
+    """
+    return get_gpu_info()
+
+
 # Define transcription endpoint
 @app.post("/transcribe")
 async def transcribe(
@@ -62,9 +73,7 @@ async def transcribe(
     try:
         # Check file extension
         if not file.filename.lower().endswith((".wav", ".flac")):
-            raise HTTPException(
-                status_code=400, detail="Only .wav and .flac files are supported"
-            )
+            raise HTTPException(status_code=400, detail="Only .wav and .flac files are supported")
 
         # Read file content
         file_content = await file.read()
@@ -89,6 +98,14 @@ async def transcribe(
 async def startup_event():
     """Run startup tasks."""
     try:
+        # Log GPU status
+        gpu_info = get_gpu_info()
+        if gpu_info["cuda_available"]:
+            logger.info(f"GPU detected: {gpu_info['gpu_name']}")
+            logger.info(f"GPU memory: {gpu_info['gpu_memory_total']:.2f} GB")
+        else:
+            logger.warning("No GPU detected - will run on CPU (slower performance)")
+
         # Pre-load the model to speed up first request
         load_model()
     except Exception as e:
