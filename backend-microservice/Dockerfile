@@ -1,5 +1,5 @@
 # Use NVIDIA CUDA base image with cuDNN for Ubuntu 22.04
-FROM nvidia/cuda:12.8.1-cudnn-runtime-ubuntu22.04
+FROM nvidia/cuda:12.6.3-cudnn-runtime-ubuntu22.04
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
@@ -42,6 +42,7 @@ RUN poetry config virtualenvs.create false && poetry install --only main
 RUN pip uninstall -y torch torchvision torchaudio
 RUN pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu126
 RUN pip install cuda-python>=12.3
+RUN pip install huggingface_hub[hf_xet]
 
 # Expose port
 EXPOSE 8000
