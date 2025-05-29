@@ -7,7 +7,7 @@ services:
       - "3569:8000"
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
-      - CUDA_VISIBLE_DEVICES=6
+      - CUDA_VISIBLE_DEVICES=0
     deploy:
       resources:
         reservations:
