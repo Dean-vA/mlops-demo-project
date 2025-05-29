@@ -762,15 +762,28 @@
             try {
                 const response = await axios.get(`${API_BASE_URL}/health`);
                 if (response.data.status === 'healthy') {
-                    const gpuStatus = response.data.gpu_available ? 'GPU' : 'CPU';
-                    const statusText = `API Online (${gpuStatus})`;
+                    // Get device info from health endpoint
+                    const device = response.data.device || 'Unknown';
+                    const gpuAvailable = response.data.gpu_available || false;
+                    const gpuName = response.data.gpu_name || 'N/A';
+
+                    // Update status text based on device
+                    let statusText = `API Online (${device.toUpperCase()})`;
+                    if (gpuAvailable && gpuName !== 'N/A') {
+                        statusText = `API Online (GPU: ${gpuName})`;
+                    }
+
                     statusIndicator.textContent = statusText;
                     statusIndicator.className = 'status-indicator status-healthy';
 
-                    // Also check detailed GPU info
-                    if (response.data.gpu_available) {
-                        const gpuInfo = await axios.get(`${API_BASE_URL}/gpu-info`);
-                        console.log('GPU Info:', gpuInfo.data);
+                    // Optional: Also fetch detailed GPU info
+                    if (gpuAvailable) {
+                        try {
+                            const gpuInfo = await axios.get(`${API_BASE_URL}/gpu-info`);
+                            console.log('Detailed GPU Info:', gpuInfo.data);
+                        } catch (error) {
+                            console.error('Could not fetch detailed GPU info:', error);
+                        }
                     }
                 } else {
                     throw new Error('API not healthy');
