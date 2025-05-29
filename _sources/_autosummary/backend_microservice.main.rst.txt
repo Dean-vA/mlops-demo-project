@@ -8,6 +8,7 @@ backend\_microservice.main
 
    .. autosummary::
    
+      get_gpu_info
       is_model_loaded
       load_model
       transcribe_audio

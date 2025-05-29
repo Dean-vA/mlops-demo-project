@@ -43,6 +43,7 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="backend_microservice.html">backend_microservice</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="backend_microservice.gpu_utils.html">backend_microservice.gpu_utils</a></li>
 <li class="toctree-l2"><a class="reference internal" href="backend_microservice.main.html">backend_microservice.main</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">backend_microservice.transcription</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#backend_microservice.transcription.is_model_loaded"><code class="docutils literal notranslate"><span class="pre">is_model_loaded()</span></code></a></li>
@@ -85,13 +86,16 @@
 <p class="rubric">Functions</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#backend_microservice.transcription.is_model_loaded" title="backend_microservice.transcription.is_model_loaded"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_model_loaded</span></code></a>()</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_device</span></code>()</p></td>
+<td><p>Get the appropriate device (GPU or CPU) for model execution.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#backend_microservice.transcription.is_model_loaded" title="backend_microservice.transcription.is_model_loaded"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_model_loaded</span></code></a>()</p></td>
 <td><p>Check if the model is already loaded.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#backend_microservice.transcription.load_model" title="backend_microservice.transcription.load_model"><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_model</span></code></a>()</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#backend_microservice.transcription.load_model" title="backend_microservice.transcription.load_model"><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_model</span></code></a>()</p></td>
 <td><p>Load the Parakeet ASR model.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#backend_microservice.transcription.transcribe_audio" title="backend_microservice.transcription.transcribe_audio"><code class="xref py py-obj docutils literal notranslate"><span class="pre">transcribe_audio</span></code></a>(audio_data, filename[, ...])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#backend_microservice.transcription.transcribe_audio" title="backend_microservice.transcription.transcribe_audio"><code class="xref py py-obj docutils literal notranslate"><span class="pre">transcribe_audio</span></code></a>(audio_data, filename[, ...])</p></td>
 <td><p>Transcribe audio using NVIDIA's Parakeet TDT model.</p></td>
 </tr>
 </tbody>

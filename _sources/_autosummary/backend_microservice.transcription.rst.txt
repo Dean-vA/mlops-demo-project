@@ -8,6 +8,7 @@ backend\_microservice.transcription
 
    .. autosummary::
    
+      get_device
       is_model_loaded
       load_model
       transcribe_audio

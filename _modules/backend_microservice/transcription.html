@@ -81,6 +81,8 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">nemo.collections.asr</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nemo_asr</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">.gpu_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_device</span>
+
 <span class="c1"># Set up logging</span>
 <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
@@ -109,8 +111,10 @@
     <span class="c1"># Create cache directory if it doesn&#39;t exist</span>
     <span class="c1"># os.makedirs(MODEL_CACHE_DIR, exist_ok=True)</span>
 
+    <span class="c1"># Get device</span>
+    <span class="n">device</span> <span class="o">=</span> <span class="n">get_device</span><span class="p">()</span>
+
     <span class="c1"># Load the model</span>
-    <span class="n">device</span> <span class="o">=</span> <span class="s2">&quot;cuda&quot;</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Using device: </span><span class="si">{</span><span class="n">device</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
     <span class="n">_model</span> <span class="o">=</span> <span class="n">nemo_asr</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">ASRModel</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span>
@@ -119,6 +123,16 @@
     <span class="p">)</span>
     <span class="n">_model</span> <span class="o">=</span> <span class="n">_model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
     <span class="n">_model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+
+    <span class="c1"># Enable GPU optimizations if on CUDA</span>
+    <span class="k">if</span> <span class="n">device</span> <span class="o">==</span> <span class="s2">&quot;cuda&quot;</span><span class="p">:</span>
+        <span class="c1"># Enable mixed precision for faster inference</span>
+        <span class="n">_model</span> <span class="o">=</span> <span class="n">_model</span><span class="o">.</span><span class="n">half</span><span class="p">()</span>  <span class="c1"># Convert to FP16 for faster GPU inference</span>
+
+        <span class="c1"># Enable cuDNN autotuner for optimal performance</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">backends</span><span class="o">.</span><span class="n">cudnn</span><span class="o">.</span><span class="n">benchmark</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;GPU optimizations enabled: FP16 precision, cuDNN autotuner&quot;</span><span class="p">)</span>
 
     <span class="c1"># # For long-form audio, we can limit the attention window</span>
     <span class="c1"># # This comes at a cost of slight degradation in performance</span>
@@ -133,6 +147,11 @@
     <span class="c1">#     logger.warning(f&quot;Could not configure long-form audio settings: {e}&quot;)</span>
 
     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Model loaded successfully&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Log model info</span>
+    <span class="n">total_params</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">_model</span><span class="o">.</span><span class="n">parameters</span><span class="p">())</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Total model parameters: </span><span class="si">{</span><span class="n">total_params</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
     <span class="k">return</span> <span class="n">_model</span></div>
 
 
@@ -167,9 +186,7 @@
         <span class="n">_model</span> <span class="o">=</span> <span class="n">load_model</span><span class="p">()</span>
 
     <span class="c1"># Save audio to a temporary file</span>
-    <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">NamedTemporaryFile</span><span class="p">(</span>
-        <span class="n">delete</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">filename</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
-    <span class="p">)</span> <span class="k">as</span> <span class="n">temp_file</span><span class="p">:</span>
+    <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">NamedTemporaryFile</span><span class="p">(</span><span class="n">delete</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">filename</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span> <span class="k">as</span> <span class="n">temp_file</span><span class="p">:</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">audio_data</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">):</span>
             <span class="n">temp_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">audio_data</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>

@@ -20,7 +20,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="backend_microservice.transcription" href="backend_microservice.transcription.html" />
-    <link rel="prev" title="backend_microservice" href="backend_microservice.html" /> 
+    <link rel="prev" title="backend_microservice.gpu_utils" href="backend_microservice.gpu_utils.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -44,7 +44,9 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="backend_microservice.html">backend_microservice</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="backend_microservice.gpu_utils.html">backend_microservice.gpu_utils</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">backend_microservice.main</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#backend_microservice.main.gpu_info"><code class="docutils literal notranslate"><span class="pre">gpu_info()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#backend_microservice.main.health"><code class="docutils literal notranslate"><span class="pre">health()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#backend_microservice.main.root"><code class="docutils literal notranslate"><span class="pre">root()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#backend_microservice.main.startup_event"><code class="docutils literal notranslate"><span class="pre">startup_event()</span></code></a></li>
@@ -86,17 +88,34 @@
 <p class="rubric">Functions</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_model_loaded</span></code>()</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_gpu_info</span></code>()</p></td>
+<td><p>Get GPU information if available.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_model_loaded</span></code>()</p></td>
 <td><p>Check if the model is already loaded.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_model</span></code>()</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_model</span></code>()</p></td>
 <td><p>Load the Parakeet ASR model.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">transcribe_audio</span></code>(audio_data, filename[, ...])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">transcribe_audio</span></code>(audio_data, filename[, ...])</p></td>
 <td><p>Transcribe audio using NVIDIA's Parakeet TDT model.</p></td>
 </tr>
 </tbody>
 </table>
+<dl class="py function">
+<dt class="sig sig-object py" id="backend_microservice.main.gpu_info">
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">backend_microservice.main.</span></span><span class="sig-name descname"><span class="pre">gpu_info</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#backend_microservice.main.gpu_info" title="Link to this definition"></a></dt>
+<dd><p>Get detailed GPU information.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Detailed GPU information including memory usage.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py function">
 <dt class="sig sig-object py" id="backend_microservice.main.health">
 <em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">backend_microservice.main.</span></span><span class="sig-name descname"><span class="pre">health</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#backend_microservice.main.health" title="Link to this definition"></a></dt>
@@ -150,7 +169,7 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="backend_microservice.html" class="btn btn-neutral float-left" title="backend_microservice" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="backend_microservice.gpu_utils.html" class="btn btn-neutral float-left" title="backend_microservice.gpu_utils" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="backend_microservice.transcription.html" class="btn btn-neutral float-right" title="backend_microservice.transcription" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
