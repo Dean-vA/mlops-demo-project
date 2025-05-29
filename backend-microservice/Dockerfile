@@ -4,7 +4,7 @@ FROM nvidia/cuda:12.6.3-cudnn-runtime-ubuntu22.04
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
 ENV DEBIAN_FRONTEND=noninteractive
-ENV CUDA_VISIBLE_DEVICES=6
+ENV CUDA_VISIBLE_DEVICES=0
 
 # Install Python 3.11 and system dependencies
 RUN apt-get update && apt-get install -y \
