@@ -39,7 +39,9 @@ COPY . /app
 RUN poetry config virtualenvs.create false && poetry install --only main
 
 # Install PyTorch with CUDA 12.8 support
-RUN pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
+RUN pip uninstall -y torch torchvision torchaudio
+RUN pip install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu128
+RUN pip install cuda-python>=12.3
 
 # Expose port
 EXPOSE 8000
