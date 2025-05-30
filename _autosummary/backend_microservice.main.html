@@ -18,9 +18,7 @@
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
-    <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="backend_microservice.transcription" href="backend_microservice.transcription.html" />
-    <link rel="prev" title="backend_microservice.gpu_utils" href="backend_microservice.gpu_utils.html" /> 
+    <link rel="search" title="Search" href="../search.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -42,20 +40,8 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <ul class="current">
-<li class="toctree-l1 current"><a class="reference internal" href="backend_microservice.html">backend_microservice</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="backend_microservice.gpu_utils.html">backend_microservice.gpu_utils</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">backend_microservice.main</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#backend_microservice.main.gpu_info"><code class="docutils literal notranslate"><span class="pre">gpu_info()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#backend_microservice.main.health"><code class="docutils literal notranslate"><span class="pre">health()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#backend_microservice.main.root"><code class="docutils literal notranslate"><span class="pre">root()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#backend_microservice.main.startup_event"><code class="docutils literal notranslate"><span class="pre">startup_event()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#backend_microservice.main.transcribe"><code class="docutils literal notranslate"><span class="pre">transcribe()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="backend_microservice.transcription.html">backend_microservice.transcription</a></li>
-</ul>
-</li>
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="backend_microservice.html">backend_microservice</a></li>
 </ul>
 
         </div>
@@ -72,7 +58,6 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
-          <li class="breadcrumb-item"><a href="backend_microservice.html">backend_microservice</a></li>
       <li class="breadcrumb-item active">backend_microservice.main</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/_autosummary/backend_microservice.main.rst.txt" rel="nofollow"> View page source</a>
@@ -83,95 +68,14 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="module-backend_microservice.main">
-<span id="backend-microservice-main"></span><h1>backend_microservice.main<a class="headerlink" href="#module-backend_microservice.main" title="Link to this heading"></a></h1>
-<p class="rubric">Functions</p>
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_gpu_info</span></code>()</p></td>
-<td><p>Get GPU information if available.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_model_loaded</span></code>()</p></td>
-<td><p>Check if the model is already loaded.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_model</span></code>()</p></td>
-<td><p>Load the Parakeet ASR model.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">transcribe_audio</span></code>(audio_data, filename[, ...])</p></td>
-<td><p>Transcribe audio using NVIDIA's Parakeet TDT model.</p></td>
-</tr>
-</tbody>
-</table>
-<dl class="py function">
-<dt class="sig sig-object py" id="backend_microservice.main.gpu_info">
-<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">backend_microservice.main.</span></span><span class="sig-name descname"><span class="pre">gpu_info</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#backend_microservice.main.gpu_info" title="Link to this definition"></a></dt>
-<dd><p>Get detailed GPU information.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Detailed GPU information including memory usage.</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>dict</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="backend_microservice.main.health">
-<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">backend_microservice.main.</span></span><span class="sig-name descname"><span class="pre">health</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#backend_microservice.main.health" title="Link to this definition"></a></dt>
-<dd><p>Health check endpoint with GPU status.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Health status of the API including GPU availability.</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>dict</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="backend_microservice.main.root">
-<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">backend_microservice.main.</span></span><span class="sig-name descname"><span class="pre">root</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#backend_microservice.main.root" title="Link to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="backend_microservice.main.startup_event">
-<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">backend_microservice.main.</span></span><span class="sig-name descname"><span class="pre">startup_event</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#backend_microservice.main.startup_event" title="Link to this definition"></a></dt>
-<dd><p>Run startup tasks.</p>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="backend_microservice.main.transcribe">
-<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">backend_microservice.main.</span></span><span class="sig-name descname"><span class="pre">transcribe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">fastapi.UploadFile</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">fastapi.File</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_timestamps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">fastapi.Form</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chunk_duration_sec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">fastapi.Form</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overlap_duration_sec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">fastapi.Form</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#backend_microservice.main.transcribe" title="Link to this definition"></a></dt>
-<dd><p>Transcribe audio file using NVIDIA’s Parakeet TDT model.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>file</strong> – Audio file to transcribe (.wav or .flac)</p></li>
-<li><p><strong>return_timestamps</strong> – Whether to include word-level timestamps.</p></li>
-<li><p><strong>chunk_duration_sec</strong> – Duration in seconds for processing audio in chunks.</p></li>
-<li><p><strong>overlap_duration_sec</strong> – Overlap duration in seconds between chunks.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Transcription result with text and optional timestamps.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>dict</p>
-</dd>
-</dl>
-</dd></dl>
-
+  <section id="backend-microservice-main">
+<h1>backend_microservice.main<a class="headerlink" href="#backend-microservice-main" title="Link to this heading"></a></h1>
 </section>
 
 
            </div>
           </div>
-          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="backend_microservice.gpu_utils.html" class="btn btn-neutral float-left" title="backend_microservice.gpu_utils" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="backend_microservice.transcription.html" class="btn btn-neutral float-right" title="backend_microservice.transcription" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-    </div>
+          <footer>
 
   <hr/>
 

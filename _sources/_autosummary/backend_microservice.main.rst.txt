@@ -3,13 +3,11 @@ backend\_microservice.main
 
 .. automodule:: backend_microservice.main
 
-   
+
    .. rubric:: Functions
 
    .. autosummary::
-   
-      get_gpu_info
+
       is_model_loaded
       load_model
       transcribe_audio
-   

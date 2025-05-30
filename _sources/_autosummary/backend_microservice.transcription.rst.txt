@@ -8,6 +8,7 @@ backend\_microservice.transcription
 
    .. autosummary::
    
+      add_speaker_tags_to_segments
       get_device
       is_model_loaded
       load_model

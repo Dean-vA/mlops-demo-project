@@ -10,6 +10,7 @@
    :toctree:
    :recursive:
 
+   diarization
    gpu_utils
    main
    transcription
