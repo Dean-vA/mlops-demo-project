@@ -231,15 +231,85 @@ def add_speaker_tags_to_segments(transcription_result, diarization_result):
         speaker_segments = diarization_result.get("segments", [])
 
         if not speaker_segments:
-            # No speakers detected, tag everything as "unknown"
-            if "segments" in transcription_result:
-                for segment in transcription_result["segments"]:
-                    segment["speaker"] = "unknown"
+            logger.info("No speaker segments found, marking all as 'unknown'")
             return transcription_result
 
-        # Process transcription segments and add speaker tags
-        if "segments" in transcription_result:
-            for trans_segment in transcription_result["segments"]:
+        logger.info(f"Found {len(speaker_segments)} speaker segments for alignment")
+
+        # Handle the case where transcription_result["text"] contains NeMo Hypothesis objects
+        if not transcription_result.get("text") or not isinstance(transcription_result["text"], list):
+            logger.warning("No transcription text found or wrong format")
+            return transcription_result
+
+        if len(transcription_result["text"]) == 0:
+            logger.warning("Empty transcription text list")
+            return transcription_result
+
+        transcription_data = transcription_result["text"][0]
+
+        # Check if this is a NeMo Hypothesis object
+        if hasattr(transcription_data, "timestamp") and transcription_data.timestamp:
+            logger.info("Processing NeMo Hypothesis object with timestamps")
+
+            # Access timestamp data directly from the Hypothesis object
+            if hasattr(transcription_data.timestamp, "get"):
+                # It's a dictionary
+                segments = transcription_data.timestamp.get("segment", [])
+            else:
+                # It's an object with direct access
+                segments = getattr(transcription_data.timestamp, "segment", [])
+
+            if segments and len(segments) > 0:
+                logger.info(f"Found {len(segments)} transcription segments to align")
+
+                # Add speaker labels to each segment
+                for i, segment in enumerate(segments):
+                    trans_start = segment.get("start", 0)
+                    trans_end = segment.get("end", 0)
+                    trans_duration = trans_end - trans_start
+
+                    # Find which speakers overlap with this transcription segment
+                    speaker_overlaps = {}
+
+                    for speaker_seg in speaker_segments:
+                        speaker = speaker_seg["speaker"]
+                        spk_start = speaker_seg["start"]
+                        spk_end = speaker_seg["end"]
+
+                        # Calculate overlap between transcription segment and speaker segment
+                        overlap_start = max(trans_start, spk_start)
+                        overlap_end = min(trans_end, spk_end)
+                        overlap_duration = max(0, overlap_end - overlap_start)
+
+                        if overlap_duration > 0:
+                            if speaker not in speaker_overlaps:
+                                speaker_overlaps[speaker] = 0
+                            speaker_overlaps[speaker] += overlap_duration
+
+                    # Assign speaker with longest overlap time
+                    if speaker_overlaps:
+                        best_speaker = max(speaker_overlaps, key=speaker_overlaps.get)
+                        segment["speaker"] = best_speaker
+                        segment["speaker_confidence"] = speaker_overlaps[best_speaker] / trans_duration if trans_duration > 0 else 0
+                        logger.info(f"Segment {i+1} '{segment.get('segment', '')[:50]}...' assigned to {best_speaker}")
+                    else:
+                        # No overlap found, assign "unknown"
+                        segment["speaker"] = "unknown"
+                        segment["speaker_confidence"] = 0.0
+                        logger.warning(f"No speaker overlap found for segment {i+1}")
+
+                logger.info("Successfully added speaker tags to all transcription segments")
+
+            else:
+                logger.warning("No segments found in timestamp object")
+
+        # Check if it's a regular dictionary format (fallback)
+        elif isinstance(transcription_data, dict) and transcription_data.get("timestamp", {}).get("segment"):
+            logger.info("Processing regular dictionary format with timestamps")
+
+            transcription_segments = transcription_data["timestamp"]["segment"]
+
+            for trans_segment in transcription_segments:
                 trans_start = trans_segment.get("start", 0)
                 trans_end = trans_segment.get("end", 0)
                 trans_duration = trans_end - trans_start
@@ -266,15 +336,18 @@ def add_speaker_tags_to_segments(transcription_result, diarization_result):
                 if speaker_overlaps:
                     best_speaker = max(speaker_overlaps, key=speaker_overlaps.get)
                     trans_segment["speaker"] = best_speaker
-                    trans_segment["speaker_confidence"] = speaker_overlaps[best_speaker] / trans_duration
+                    trans_segment["speaker_confidence"] = speaker_overlaps[best_speaker] / trans_duration if trans_duration > 0 else 0
                 else:
                     # No overlap found, assign "unknown"
                     trans_segment["speaker"] = "unknown"
                     trans_segment["speaker_confidence"] = 0.0
 
+        else:
+            logger.warning(f"Unrecognized transcription data format: {type(transcription_data)}")
+
         return transcription_result
 
     except Exception as e:
-        logger.warning(f"Failed to add speaker tags: {e}")
-        # Return original result if tagging fails
+        logger.error(f"Failed to add speaker tags: {e}")
+        logger.exception("Full error details:")
         return transcription_result
