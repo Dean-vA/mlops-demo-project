@@ -16,6 +16,11 @@ services:
               count: 1
               capabilities: [gpu]
     restart: unless-stopped
+     # Fix shared memory issues for NeMo diarization
+    shm_size: '2g'  # Increase shared memory to 2GB
+    # Alternative approach - mount larger /dev/shm
+    volumes:
+      - /dev/shm:/dev/shm
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s

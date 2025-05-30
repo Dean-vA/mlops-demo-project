@@ -2,6 +2,7 @@
 Functions for audio transcription using NVIDIA's Parakeet TDT model.
 """
 
+import gc
 import logging
 import os
 import tempfile
@@ -9,11 +10,9 @@ import time
 from typing import Any, BinaryIO, Dict, Optional, Union
 
 import nemo.collections.asr as nemo_asr
+import torch
 
 from .gpu_utils import get_device
-
-# import torch
-
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -21,7 +20,6 @@ logger = logging.getLogger(__name__)
 
 # Global variables
 MODEL_NAME = "nvidia/parakeet-tdt-0.6b-v2"
-# MODEL_CACHE_DIR = os.environ.get("MODEL_CACHE_DIR", "./.model_cache")
 _model = None  # Will hold the loaded model instance
 
 
@@ -38,9 +36,6 @@ def load_model():
 
     logger.info(f"Loading model: {MODEL_NAME}")
 
-    # Create cache directory if it doesn't exist
-    # os.makedirs(MODEL_CACHE_DIR, exist_ok=True)
-
     # Get device
     device = get_device()
 
@@ -49,32 +44,9 @@ def load_model():
 
     _model = nemo_asr.models.ASRModel.from_pretrained(
         model_name=MODEL_NAME,
-        # cache_dir=MODEL_CACHE_DIR
     )
     _model = _model.to(device)
     _model.eval()
-
-    # Enable GPU optimizations if on CUDA
-    # if device == "cuda":
-    #     # Enable mixed precision for faster inference
-    #     _model = _model.half()  # Convert to FP16 for faster GPU inference
-
-    #     # Enable cuDNN autotuner for optimal performance
-    #     torch.backends.cudnn.benchmark = True
-
-    #     logger.info("GPU optimizations enabled: FP16 precision, cuDNN autotuner")
-
-    # # For long-form audio, we can limit the attention window
-    # # This comes at a cost of slight degradation in performance
-    # # but helps with memory usage
-    # try:
-    #     # These values can be adjusted based on memory constraints
-    #     _model.change_attention_model("rel_pos_local_attn", [128, 128])
-    #     # Enable chunking for subsampling module
-    #     _model.change_subsampling_conv_chunking_factor(1)  # 1 = auto select
-    #     logger.info("Configured model for long-form audio")
-    # except Exception as e:
-    #     logger.warning(f"Could not configure long-form audio settings: {e}")
 
     logger.info("Model loaded successfully")
 
@@ -99,17 +71,16 @@ def transcribe_audio(
         filename: Name of the audio file.
         return_timestamps: Whether to include word-level timestamps.
         chunk_duration_sec: Duration in seconds for processing audio in chunks.
-        overlap_duration_sec: Overlap duration in seconds between chunks.
+        overlap_duration_sec: Optional[float] = None,
 
     Returns:
         Dict containing transcription results.
     """
     global _model
+
     # Load model if not already loaded
-    # First check if the model is already loaded
     if not is_model_loaded():
         logger.info("Loading model for the first time")
-        # Load the model
         _model = load_model()
 
     # Save audio to a temporary file
@@ -127,52 +98,113 @@ def transcribe_audio(
 
         start_time = time.time()
 
-        # # Add chunking parameters if provided
-        # if chunk_duration_sec is not None:
-        #     transcribe_kwargs["chunk_duration"] = chunk_duration_sec
-        #     if overlap_duration_sec is not None:
-        #         transcribe_kwargs["overlap_duration"] = overlap_duration_sec
+        # Force garbage collection before transcription
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
 
-        # Perform transcription
-        result = _model.transcribe([temp_file_path], timestamps=return_timestamps)
+        # Perform transcription with memory management
+        logger.info(f"Starting transcription with timestamps: {return_timestamps}")
+
+        # Use torch.no_grad() to prevent memory buildup from gradients
+        with torch.no_grad():
+            result = _model.transcribe([temp_file_path], timestamps=return_timestamps)
 
         end_time = time.time()
         processing_time = end_time - start_time
 
         logger.info(f"Transcription completed in {processing_time:.2f} seconds")
 
-        # Process the results
+        # Process the results with careful memory management
         transcription_result = {
-            "text": result.text if hasattr(result, "text") else result,
             "processing_time_sec": processing_time,
         }
 
+        # Handle different result formats from NeMo
+        if hasattr(result, "text"):
+            transcription_result["text"] = result.text
+        elif isinstance(result, list) and len(result) > 0:
+            transcription_result["text"] = result
+        else:
+            transcription_result["text"] = str(result)
+
         # Add timestamps if available and requested
-        if return_timestamps and hasattr(result, "timestamp"):
-            transcription_result["timestamps"] = {
-                "word": result.timestamp.get("word", []),
-                "segment": result.timestamp.get("segment", []),
-            }
+        if return_timestamps:
+            logger.info("Processing timestamps...")
 
-            # Format segment timestamps for easier consumption
-            segments = []
-            for stamp in transcription_result["timestamps"]["segment"]:
-                segments.append(
-                    {
-                        "start": stamp["start"],
-                        "end": stamp["end"],
-                        "text": stamp["segment"],
-                    }
-                )
+            # Initialize timestamp containers
+            transcription_result["timestamps"] = {"word": [], "segment": []}
+            transcription_result["segments"] = []
 
-            transcription_result["segments"] = segments
+            # Process timestamps carefully to avoid memory issues
+            try:
+                if hasattr(result, "timestamp") and result.timestamp:
+                    # Extract word timestamps
+                    if "word" in result.timestamp:
+                        word_timestamps = result.timestamp["word"]
+                        if word_timestamps:
+                            # Process in smaller batches to avoid memory spike
+                            batch_size = 100
+                            processed_words = []
 
+                            for i in range(0, len(word_timestamps), batch_size):
+                                batch = word_timestamps[i : i + batch_size]
+                                processed_words.extend(batch)
+
+                                # Clear intermediate data
+                                if i % (batch_size * 10) == 0:  # Every 1000 words
+                                    gc.collect()
+
+                            transcription_result["timestamps"]["word"] = processed_words
+
+                    # Extract segment timestamps
+                    if "segment" in result.timestamp:
+                        segment_timestamps = result.timestamp["segment"]
+                        if segment_timestamps:
+                            transcription_result["timestamps"]["segment"] = segment_timestamps
+
+                            # Format segment timestamps for easier consumption
+                            segments = []
+                            for stamp in segment_timestamps:
+                                segments.append({"start": stamp.get("start", 0), "end": stamp.get("end", 0), "text": stamp.get("segment", "")})
+
+                            transcription_result["segments"] = segments
+
+                logger.info(f"Processed {len(transcription_result['timestamps']['word'])} word timestamps")
+                logger.info(f"Processed {len(transcription_result['segments'])} segments")
+
+            except Exception as e:
+                logger.warning(f"Error processing timestamps: {e}")
+                # Continue without timestamps rather than crashing
+                transcription_result["timestamps"] = {"word": [], "segment": []}
+                transcription_result["segments"] = []
+
+        # Force cleanup of the result object to free memory
+        del result
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
+        logger.info("Transcription processing complete")
         return transcription_result
 
+    except Exception as e:
+        logger.error(f"Transcription error: {e}")
+        # Cleanup on error
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        raise
     finally:
         # Clean up the temporary file
         if os.path.exists(temp_file_path):
-            os.unlink(temp_file_path)
+            try:
+                os.unlink(temp_file_path)
+            except Exception as e:
+                logger.warning(f"Could not delete temp file: {e}")
+
+        # Final cleanup
+        gc.collect()
 
 
 def is_model_loaded() -> bool:
@@ -182,3 +214,67 @@ def is_model_loaded() -> bool:
         bool: Whether the model is loaded.
     """
     return _model is not None
+
+
+def add_speaker_tags_to_segments(transcription_result, diarization_result):
+    """Add speaker tags to transcription segments based on overlap timing.
+
+    Args:
+        transcription_result: Result from transcribe_audio()
+        diarization_result: Result from diarize_audio()
+
+    Returns:
+        Modified transcription_result with speaker tags added to segments
+    """
+    try:
+        # Get diarization segments
+        speaker_segments = diarization_result.get("segments", [])
+
+        if not speaker_segments:
+            # No speakers detected, tag everything as "unknown"
+            if "segments" in transcription_result:
+                for segment in transcription_result["segments"]:
+                    segment["speaker"] = "unknown"
+            return transcription_result
+
+        # Process transcription segments and add speaker tags
+        if "segments" in transcription_result:
+            for trans_segment in transcription_result["segments"]:
+                trans_start = trans_segment.get("start", 0)
+                trans_end = trans_segment.get("end", 0)
+                trans_duration = trans_end - trans_start
+
+                # Find which speakers overlap with this transcription segment
+                speaker_overlaps = {}
+
+                for speaker_seg in speaker_segments:
+                    speaker = speaker_seg["speaker"]
+                    spk_start = speaker_seg["start"]
+                    spk_end = speaker_seg["end"]
+
+                    # Calculate overlap between transcription segment and speaker segment
+                    overlap_start = max(trans_start, spk_start)
+                    overlap_end = min(trans_end, spk_end)
+                    overlap_duration = max(0, overlap_end - overlap_start)
+
+                    if overlap_duration > 0:
+                        if speaker not in speaker_overlaps:
+                            speaker_overlaps[speaker] = 0
+                        speaker_overlaps[speaker] += overlap_duration
+
+                # Assign speaker with longest overlap time
+                if speaker_overlaps:
+                    best_speaker = max(speaker_overlaps, key=speaker_overlaps.get)
+                    trans_segment["speaker"] = best_speaker
+                    trans_segment["speaker_confidence"] = speaker_overlaps[best_speaker] / trans_duration
+                else:
+                    # No overlap found, assign "unknown"
+                    trans_segment["speaker"] = "unknown"
+                    trans_segment["speaker_confidence"] = 0.0
+
+        return transcription_result
+
+    except Exception as e:
+        logger.warning(f"Failed to add speaker tags: {e}")
+        # Return original result if tagging fails
+        return transcription_result

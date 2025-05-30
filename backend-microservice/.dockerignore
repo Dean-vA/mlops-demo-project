@@ -1,0 +1,5 @@
+.pyest_cache/
+.venv/
+docs/
+tests/
+htmlcov/
