@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Parakeet STT - Speech to Text</title>
+    <title>Parakeet STT - Speech to Text with Speaker Diarization</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.0/axios.min.js"></script>
     <style>
         * {
@@ -346,6 +346,13 @@
             transform: translateX(26px);
         }
 
+        /* NEW: Button container for the two transcription options */
+        .transcribe-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
         .transcribe-btn {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -356,8 +363,7 @@
             border-radius: 50px;
             cursor: pointer;
             transition: all 0.3s ease;
-            margin-top: 30px;
-            width: 100%;
+            flex: 1;
             position: relative;
             overflow: hidden;
         }
@@ -370,6 +376,15 @@
         .transcribe-btn:disabled {
             opacity: 0.6;
             cursor: not-allowed;
+        }
+
+        /* NEW: Speaker diarization button styling */
+        .transcribe-btn.diarize {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        }
+
+        .transcribe-btn.diarize:hover:not(:disabled) {
+            box-shadow: 0 10px 20px rgba(40, 167, 69, 0.3);
         }
 
         .loading {
@@ -478,7 +493,7 @@
 
         .segment-header {
             display: flex;
-            justify-content: between;
+            justify-content: space-between;
             align-items: center;
             margin-bottom: 10px;
             gap: 15px;
@@ -499,6 +514,24 @@
             font-size: 0.85rem;
             font-style: italic;
         }
+
+        /* NEW: Speaker label styling with colors */
+        .speaker-label {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: white;
+            white-space: nowrap;
+        }
+
+        .speaker-0 { background: linear-gradient(135deg, #FF6B6B, #FF8E53); }
+        .speaker-1 { background: linear-gradient(135deg, #4ECDC4, #44A08D); }
+        .speaker-2 { background: linear-gradient(135deg, #45B7D1, #96C93D); }
+        .speaker-3 { background: linear-gradient(135deg, #F093FB, #F5576C); }
+        .speaker-4 { background: linear-gradient(135deg, #4FACFE, #00F2FE); }
+        .speaker-5 { background: linear-gradient(135deg, #43E97B, #38F9D7); }
+        .speaker-unknown { background: linear-gradient(135deg, #667eea, #764ba2); }
 
         .segment-text {
             font-size: 1rem;
@@ -533,6 +566,39 @@
         .timestamp-time {
             color: #666;
             font-size: 0.9rem;
+        }
+
+        /* NEW: Speaker summary section */
+        .speaker-summary {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .speaker-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .speaker-item:last-child {
+            border-bottom: none;
+        }
+
+        .speaker-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .speaker-stats {
+            display: flex;
+            gap: 20px;
+            font-size: 0.9rem;
+            color: #666;
         }
 
         .error {
@@ -583,6 +649,16 @@
             .stats {
                 grid-template-columns: 1fr 1fr;
             }
+
+            .transcribe-buttons {
+                flex-direction: column;
+            }
+
+            .segment-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
         }
     </style>
 </head>
@@ -590,7 +666,7 @@
     <div class="container">
         <div class="header">
             <h1>🎤 Parakeet STT</h1>
-            <p>High-quality speech-to-text transcription powered by NVIDIA's Parakeet TDT model</p>
+            <p>High-quality speech-to-text transcription with speaker diarization powered by NVIDIA's Parakeet TDT model</p>
         </div>
 
         <div class="card">
@@ -662,13 +738,19 @@
                 </div>
             </div>
 
-            <button class="transcribe-btn" id="transcribeBtn" disabled>
-                Select an audio file or record audio to transcribe
-            </button>
+            <!-- NEW: Two transcription buttons -->
+            <div class="transcribe-buttons">
+                <button class="transcribe-btn" id="transcribeBtn" disabled>
+                    📝 Transcribe Only
+                </button>
+                <button class="transcribe-btn diarize" id="transcribeDiarizeBtn" disabled>
+                    👥 Transcribe + Speakers
+                </button>
+            </div>
 
             <div class="loading" id="loading">
                 <div class="spinner"></div>
-                <span>Transcribing your audio...</span>
+                <span id="loadingText">Transcribing your audio...</span>
             </div>
 
             <div class="results" id="results">
@@ -690,6 +772,16 @@
                         <div class="stat-value" id="segmentCount">-</div>
                         <div class="stat-label">Segments</div>
                     </div>
+                    <div class="stat-item" id="speakerCountStat" style="display: none;">
+                        <div class="stat-value" id="speakerCount">-</div>
+                        <div class="stat-label">Speakers</div>
+                    </div>
+                </div>
+
+                <!-- NEW: Speaker summary section -->
+                <div class="result-section" id="speakerSummarySection" style="display: none;">
+                    <h3>👥 Speaker Summary</h3>
+                    <div class="speaker-summary" id="speakerSummary"></div>
                 </div>
 
                 <div class="result-section" id="segmentsSection" style="display: none;">
@@ -718,6 +810,7 @@
         let audioStream = null;
         let recordingTimerInterval = null;
         let recordingStartTime = null;
+        let currentMode = 'transcribe'; // 'transcribe' or 'diarize'
 
         // DOM elements
         const uploadArea = document.getElementById('uploadArea');
@@ -727,12 +820,18 @@
         const fileSize = document.getElementById('fileSize');
         const fileType = document.getElementById('fileType');
         const transcribeBtn = document.getElementById('transcribeBtn');
+        const transcribeDiarizeBtn = document.getElementById('transcribeDiarizeBtn');
         const loading = document.getElementById('loading');
+        const loadingText = document.getElementById('loadingText');
         const results = document.getElementById('results');
         const transcriptionText = document.getElementById('transcriptionText');
         const processingTime = document.getElementById('processingTime');
         const wordCount = document.getElementById('wordCount');
         const segmentCount = document.getElementById('segmentCount');
+        const speakerCount = document.getElementById('speakerCount');
+        const speakerCountStat = document.getElementById('speakerCountStat');
+        const speakerSummary = document.getElementById('speakerSummary');
+        const speakerSummarySection = document.getElementById('speakerSummarySection');
         const timestamps = document.getElementById('timestamps');
         const segments = document.getElementById('segments');
         const segmentsSection = document.getElementById('segmentsSection');
@@ -762,12 +861,10 @@
             try {
                 const response = await axios.get(`${API_BASE_URL}/health`);
                 if (response.data.status === 'healthy') {
-                    // Get device info from health endpoint
                     const device = response.data.device || 'Unknown';
                     const gpuAvailable = response.data.gpu_available || false;
                     const gpuName = response.data.gpu_name || 'N/A';
 
-                    // Update status text based on device
                     let statusText = `API Online (${device.toUpperCase()})`;
                     if (gpuAvailable && gpuName !== 'N/A') {
                         statusText = `API Online (GPU: ${gpuName})`;
@@ -775,16 +872,6 @@
 
                     statusIndicator.textContent = statusText;
                     statusIndicator.className = 'status-indicator status-healthy';
-
-                    // Optional: Also fetch detailed GPU info
-                    if (gpuAvailable) {
-                        try {
-                            const gpuInfo = await axios.get(`${API_BASE_URL}/gpu-info`);
-                            console.log('Detailed GPU Info:', gpuInfo.data);
-                        } catch (error) {
-                            console.error('Could not fetch detailed GPU info:', error);
-                        }
-                    }
                 } else {
                     throw new Error('API not healthy');
                 }
@@ -804,6 +891,10 @@
         replayBtn.addEventListener('click', playRecordedAudio);
         rerecordBtn.addEventListener('click', startNewRecording);
 
+        // NEW: Button handlers
+        transcribeBtn.addEventListener('click', () => handleTranscription('transcribe'));
+        transcribeDiarizeBtn.addEventListener('click', () => handleTranscription('diarize'));
+
         function switchTab(tab) {
             if (tab === 'file') {
                 fileTab.classList.add('active');
@@ -817,7 +908,6 @@
                 fileContent.classList.remove('active');
             }
 
-            // Reset states when switching tabs
             resetTranscriptionState();
         }
 
@@ -831,7 +921,6 @@
 
         async function startRecording() {
             try {
-                // Request microphone access
                 audioStream = await navigator.mediaDevices.getUserMedia({
                     audio: {
                         sampleRate: 44100,
@@ -841,7 +930,6 @@
                     }
                 });
 
-                // Create MediaRecorder
                 mediaRecorder = new MediaRecorder(audioStream, {
                     mimeType: 'audio/webm;codecs=opus'
                 });
@@ -858,17 +946,14 @@
                     handleRecordingComplete();
                 };
 
-                // Start recording
                 mediaRecorder.start();
                 recordingStartTime = Date.now();
 
-                // Update UI
                 micArea.classList.add('recording');
                 micIcon.textContent = '⏹️';
                 micText.textContent = 'Click to stop recording';
                 recordingControls.style.display = 'flex';
 
-                // Start timer
                 startRecordingTimer();
 
             } catch (error) {
@@ -882,7 +967,6 @@
                 mediaRecorder.stop();
                 audioStream.getTracks().forEach(track => track.stop());
 
-                // Update UI
                 micArea.classList.remove('recording');
                 recordingControls.style.display = 'none';
                 clearInterval(recordingTimerInterval);
@@ -907,14 +991,10 @@
                     try {
                         const arrayBuffer = e.target.result;
                         const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-
-                        // Convert to WAV
                         const wavBlob = audioBufferToWav(audioBuffer);
                         resolve(wavBlob);
                     } catch (error) {
                         console.error('Error converting audio:', error);
-                        // Fallback: just change the filename to .wav even though it's webm
-                        // The backend might be able to handle it
                         resolve(audioBlob);
                     }
                 };
@@ -930,7 +1010,6 @@
             const arrayBuffer = new ArrayBuffer(44 + length * numberOfChannels * 2);
             const view = new DataView(arrayBuffer);
 
-            // WAV header
             const writeString = (offset, string) => {
                 for (let i = 0; i < string.length; i++) {
                     view.setUint8(offset + i, string.charCodeAt(i));
@@ -951,7 +1030,6 @@
             writeString(36, 'data');
             view.setUint32(40, length * numberOfChannels * 2, true);
 
-            // Convert audio data
             let offset = 44;
             for (let i = 0; i < length; i++) {
                 for (let channel = 0; channel < numberOfChannels; channel++) {
@@ -975,11 +1053,7 @@
             micIcon.textContent = '✅';
             micText.textContent = 'Recording complete';
 
-            transcribeBtn.disabled = false;
-            transcribeBtn.textContent = 'Transcribe Recording';
-
-            // Hide previous results
-            results.classList.remove('show');
+            enableTranscriptionButtons();
             hideError();
         }
 
@@ -995,8 +1069,7 @@
             recordedInfo.style.display = 'none';
             micIcon.textContent = '🎤';
             micText.textContent = 'Click to start recording';
-            transcribeBtn.disabled = true;
-            transcribeBtn.textContent = 'Select an audio file or record audio to transcribe';
+            disableTranscriptionButtons();
             resetTranscriptionState();
         }
 
@@ -1004,9 +1077,22 @@
             results.classList.remove('show');
             hideError();
             if (!selectedFile && !recordedAudioBlob) {
-                transcribeBtn.disabled = true;
-                transcribeBtn.textContent = 'Select an audio file or record audio to transcribe';
+                disableTranscriptionButtons();
             }
+        }
+
+        function enableTranscriptionButtons() {
+            transcribeBtn.disabled = false;
+            transcribeDiarizeBtn.disabled = false;
+            transcribeBtn.textContent = '📝 Transcribe Only';
+            transcribeDiarizeBtn.textContent = '👥 Transcribe + Speakers';
+        }
+
+        function disableTranscriptionButtons() {
+            transcribeBtn.disabled = true;
+            transcribeDiarizeBtn.disabled = true;
+            transcribeBtn.textContent = 'Select audio file or record audio';
+            transcribeDiarizeBtn.textContent = 'Select audio file or record audio';
         }
 
         // File upload handlers
@@ -1043,7 +1129,6 @@
         }
 
         function handleFile(file) {
-            // Validate file type
             if (!file.name.toLowerCase().endsWith('.wav') && !file.name.toLowerCase().endsWith('.flac')) {
                 showError('Please select a .wav or .flac audio file.');
                 return;
@@ -1051,7 +1136,6 @@
 
             selectedFile = file;
 
-            // Update UI
             fileName.textContent = file.name;
             fileSize.textContent = formatFileSize(file.size);
             fileType.textContent = file.type || 'audio/' + file.name.split('.').pop();
@@ -1061,10 +1145,8 @@
             uploadArea.querySelector('.upload-text').textContent = 'Audio file selected';
 
             fileInfo.classList.add('show');
-            transcribeBtn.disabled = false;
-            transcribeBtn.textContent = 'Transcribe Audio';
+            enableTranscriptionButtons();
 
-            // Hide previous results and errors
             results.classList.remove('show');
             hideError();
         }
@@ -1075,34 +1157,44 @@
             return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
         }
 
-        // Transcription handler
-        transcribeBtn.addEventListener('click', async () => {
+        // NEW: Enhanced transcription handler
+        async function handleTranscription(mode) {
             const audioToTranscribe = recordedAudioBlob || selectedFile;
             if (!audioToTranscribe) return;
+
+            currentMode = mode;
 
             try {
                 // Show loading state
                 transcribeBtn.disabled = true;
+                transcribeDiarizeBtn.disabled = true;
                 loading.classList.add('show');
                 results.classList.remove('show');
                 hideError();
+
+                // Update loading text based on mode
+                if (mode === 'diarize') {
+                    loadingText.textContent = 'Transcribing and identifying speakers...';
+                } else {
+                    loadingText.textContent = 'Transcribing your audio...';
+                }
 
                 // Prepare form data
                 const formData = new FormData();
 
                 if (recordedAudioBlob) {
-                    // Use recorded audio - send as WAV file
                     formData.append('file', recordedAudioBlob, 'recording.wav');
                 } else {
-                    // Use uploaded file
                     formData.append('file', selectedFile);
                 }
 
-                // Always request timestamps from API - we'll control display in frontend
                 formData.append('return_timestamps', true);
 
+                // Choose endpoint based on mode
+                const endpoint = mode === 'diarize' ? '/transcribe_and_diarize' : '/transcribe';
+
                 // Make API request
-                const response = await axios.post(`${API_BASE_URL}/transcribe`, formData, {
+                const response = await axios.post(`${API_BASE_URL}${endpoint}`, formData, {
                     headers: {
                         'Content-Type': 'multipart/form-data'
                     },
@@ -1110,14 +1202,14 @@
                 });
 
                 // Display results
-                displayResults(response.data);
+                displayResults(response.data, mode);
 
             } catch (error) {
                 console.error('Transcription error:', error);
                 if (error.response) {
                     showError(`API Error: ${error.response.data.detail || error.response.statusText}`);
                 } else if (error.request) {
-                    showError('Network error: Could not connect to the API. Make sure the backend is running on localhost:3569');
+                    showError('Network error: Could not connect to the API. Make sure the backend is running.');
                 } else {
                     showError(`Error: ${error.message}`);
                 }
@@ -1125,32 +1217,42 @@
                 // Hide loading state
                 loading.classList.remove('show');
                 transcribeBtn.disabled = false;
+                transcribeDiarizeBtn.disabled = false;
             }
-        });
+        }
 
-        function displayResults(data) {
-            console.log('API Response:', data); // Debug log
+        // NEW: Enhanced results display with speaker support
+        function displayResults(data, mode) {
+            console.log('API Response:', data);
 
-            // Handle the actual API response format where data.text is an array
+            let transcriptionData;
+            let diarizationData = null;
+
+            // Handle different response formats
+            if (mode === 'diarize' && data.transcription) {
+                transcriptionData = data.transcription;
+                diarizationData = data.diarization;
+            } else {
+                transcriptionData = data;
+            }
+
+            // Extract transcription text
             let transcriptionText_content = '';
-            wordTimestamps = []; // Store globally for toggle functionality
-            segmentTimestamps = []; // Store globally for toggle functionality
+            let wordTimestamps = [];
+            let segmentTimestamps = [];
 
-            if (Array.isArray(data.text) && data.text.length > 0) {
-                // Extract text from the first result in the array
-                transcriptionText_content = data.text[0].text || 'No transcription found';
+            if (Array.isArray(transcriptionData.text) && transcriptionData.text.length > 0) {
+                transcriptionText_content = transcriptionData.text[0].text || 'No transcription found';
 
-                // Extract word timestamps if available
-                if (data.text[0].timestamp && data.text[0].timestamp.word) {
-                    wordTimestamps = data.text[0].timestamp.word;
+                if (transcriptionData.text[0].timestamp && transcriptionData.text[0].timestamp.word) {
+                    wordTimestamps = transcriptionData.text[0].timestamp.word;
                 }
 
-                // Extract segment timestamps if available
-                if (data.text[0].timestamp && data.text[0].timestamp.segment) {
-                    segmentTimestamps = data.text[0].timestamp.segment;
+                if (transcriptionData.text[0].timestamp && transcriptionData.text[0].timestamp.segment) {
+                    segmentTimestamps = transcriptionData.text[0].timestamp.segment;
                 }
-            } else if (typeof data.text === 'string') {
-                transcriptionText_content = data.text;
+            } else if (typeof transcriptionData.text === 'string') {
+                transcriptionText_content = transcriptionData.text;
             } else {
                 transcriptionText_content = 'No transcription text found';
             }
@@ -1159,27 +1261,35 @@
             transcriptionText.textContent = transcriptionText_content;
 
             // Display stats
-            processingTime.textContent = (data.processing_time_sec || 0).toFixed(2);
+            processingTime.textContent = (transcriptionData.processing_time_sec || data.combined_processing_time || 0).toFixed(2);
 
-            // Calculate word count safely
+            // Calculate word count
             let words = 0;
             if (typeof transcriptionText_content === 'string' && transcriptionText_content.length > 0) {
                 words = transcriptionText_content.split(' ').filter(word => word.trim().length > 0).length;
             }
             wordCount.textContent = words;
-
-            // Display segment count
             segmentCount.textContent = segmentTimestamps.length;
 
-            // Display segments if available and enabled
+            // NEW: Handle speaker information
+            if (mode === 'diarize' && diarizationData) {
+                speakerCount.textContent = diarizationData.num_speakers_detected || 0;
+                speakerCountStat.style.display = 'block';
+                displaySpeakerSummary(diarizationData);
+            } else {
+                speakerCountStat.style.display = 'none';
+                speakerSummarySection.style.display = 'none';
+            }
+
+            // Display segments
             if (segmentTimestamps && Array.isArray(segmentTimestamps) && segmentTimestamps.length > 0 && segmentsToggle.checked) {
-                displaySegments(segmentTimestamps);
+                displaySegments(segmentTimestamps, mode === 'diarize');
                 segmentsSection.style.display = 'block';
             } else {
                 segmentsSection.style.display = 'none';
             }
 
-            // Display timestamps if available and enabled
+            // Display timestamps
             if (wordTimestamps && Array.isArray(wordTimestamps) && wordTimestamps.length > 0 && timestampsToggle.checked) {
                 displayTimestamps(wordTimestamps);
                 timestampsSection.style.display = 'block';
@@ -1187,23 +1297,83 @@
                 timestampsSection.style.display = 'none';
             }
 
-            // Show results
             results.classList.add('show');
         }
 
-        function displaySegments(segmentTimestamps) {
+        // NEW: Display speaker summary
+        function displaySpeakerSummary(diarizationData) {
+            if (!diarizationData.speakers) {
+                speakerSummarySection.style.display = 'none';
+                return;
+            }
+
+            speakerSummary.innerHTML = '';
+
+            // Calculate speaker statistics
+            const speakerStats = [];
+            let totalDuration = 0;
+
+            Object.entries(diarizationData.speakers).forEach(([speaker, segments]) => {
+                const duration = segments.reduce((sum, seg) => sum + seg.duration, 0);
+                totalDuration += duration;
+                speakerStats.push({
+                    speaker: speaker,
+                    duration: duration,
+                    segments: segments.length
+                });
+            });
+
+            // Sort by duration (most active first)
+            speakerStats.sort((a, b) => b.duration - a.duration);
+
+            // Display each speaker
+            speakerStats.forEach(stat => {
+                const percentage = ((stat.duration / totalDuration) * 100).toFixed(1);
+                const speakerClass = getSpeakerClass(stat.speaker);
+
+                const speakerItem = document.createElement('div');
+                speakerItem.className = 'speaker-item';
+
+                speakerItem.innerHTML = `
+                    <div class="speaker-info">
+                        <div class="speaker-label ${speakerClass}">${stat.speaker.toUpperCase()}</div>
+                        <span>${stat.segments} segments</span>
+                    </div>
+                    <div class="speaker-stats">
+                        <span>${stat.duration.toFixed(1)}s</span>
+                        <span>${percentage}%</span>
+                    </div>
+                `;
+
+                speakerSummary.appendChild(speakerItem);
+            });
+
+            speakerSummarySection.style.display = 'block';
+        }
+
+        // NEW: Enhanced segment display with speaker colors
+        function displaySegments(segmentTimestamps, showSpeakers = false) {
             segments.innerHTML = '';
 
             segmentTimestamps.forEach((segment, index) => {
                 const segmentItem = document.createElement('div');
                 segmentItem.className = 'segment-item';
 
-                // Calculate duration
                 const duration = (segment.end - segment.start).toFixed(2);
+                const speaker = segment.speaker;
+                const speakerClass = getSpeakerClass(speaker);
+
+                let speakerHtml = '';
+                if (showSpeakers && speaker) {
+                    speakerHtml = `<div class="speaker-label ${speakerClass}">${speaker.toUpperCase()}</div>`;
+                }
 
                 segmentItem.innerHTML = `
                     <div class="segment-header">
-                        <div class="segment-time">${segment.start.toFixed(2)}s - ${segment.end.toFixed(2)}s</div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div class="segment-time">${segment.start.toFixed(2)}s - ${segment.end.toFixed(2)}s</div>
+                            ${speakerHtml}
+                        </div>
                         <div class="segment-duration">${duration}s duration</div>
                     </div>
                     <div class="segment-text">${segment.segment}</div>
@@ -1229,6 +1399,20 @@
             });
         }
 
+        // NEW: Get speaker color class
+        function getSpeakerClass(speaker) {
+            if (!speaker || speaker === 'unknown') return 'speaker-unknown';
+
+            // Extract number from speaker name (e.g., "speaker_0" -> 0)
+            const match = speaker.match(/\d+/);
+            if (match) {
+                const num = parseInt(match[0]);
+                return `speaker-${num % 6}`; // Cycle through 6 colors
+            }
+
+            return 'speaker-unknown';
+        }
+
         function showError(message) {
             errorMessage.textContent = message;
             errorMessage.style.display = 'block';
@@ -1238,7 +1422,7 @@
             errorMessage.style.display = 'none';
         }
 
-        // Toggle handlers for showing/hiding sections after transcription
+        // Toggle handlers
         timestampsToggle.addEventListener('change', () => {
             if (results.classList.contains('show')) {
                 if (timestampsToggle.checked && wordTimestamps.length > 0) {
