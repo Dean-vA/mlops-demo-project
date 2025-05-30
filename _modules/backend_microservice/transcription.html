@@ -312,15 +312,85 @@
         <span class="n">speaker_segments</span> <span class="o">=</span> <span class="n">diarization_result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;segments&quot;</span><span class="p">,</span> <span class="p">[])</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">speaker_segments</span><span class="p">:</span>
-            <span class="c1"># No speakers detected, tag everything as &quot;unknown&quot;</span>
-            <span class="k">if</span> <span class="s2">&quot;segments&quot;</span> <span class="ow">in</span> <span class="n">transcription_result</span><span class="p">:</span>
-                <span class="k">for</span> <span class="n">segment</span> <span class="ow">in</span> <span class="n">transcription_result</span><span class="p">[</span><span class="s2">&quot;segments&quot;</span><span class="p">]:</span>
-                    <span class="n">segment</span><span class="p">[</span><span class="s2">&quot;speaker&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;unknown&quot;</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;No speaker segments found, marking all as &#39;unknown&#39;&quot;</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">transcription_result</span>
 
-        <span class="c1"># Process transcription segments and add speaker tags</span>
-        <span class="k">if</span> <span class="s2">&quot;segments&quot;</span> <span class="ow">in</span> <span class="n">transcription_result</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">trans_segment</span> <span class="ow">in</span> <span class="n">transcription_result</span><span class="p">[</span><span class="s2">&quot;segments&quot;</span><span class="p">]:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Found </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">speaker_segments</span><span class="p">)</span><span class="si">}</span><span class="s2"> speaker segments for alignment&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Handle the case where transcription_result[&quot;text&quot;] contains NeMo Hypothesis objects</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">transcription_result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;text&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">transcription_result</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">],</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;No transcription text found or wrong format&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">transcription_result</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">transcription_result</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">])</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Empty transcription text list&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">transcription_result</span>
+
+        <span class="n">transcription_data</span> <span class="o">=</span> <span class="n">transcription_result</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># Check if this is a NeMo Hypothesis object</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">transcription_data</span><span class="p">,</span> <span class="s2">&quot;timestamp&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">transcription_data</span><span class="o">.</span><span class="n">timestamp</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Processing NeMo Hypothesis object with timestamps&quot;</span><span class="p">)</span>
+
+            <span class="c1"># Access timestamp data directly from the Hypothesis object</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">transcription_data</span><span class="o">.</span><span class="n">timestamp</span><span class="p">,</span> <span class="s2">&quot;get&quot;</span><span class="p">):</span>
+                <span class="c1"># It&#39;s a dictionary</span>
+                <span class="n">segments</span> <span class="o">=</span> <span class="n">transcription_data</span><span class="o">.</span><span class="n">timestamp</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;segment&quot;</span><span class="p">,</span> <span class="p">[])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># It&#39;s an object with direct access</span>
+                <span class="n">segments</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">transcription_data</span><span class="o">.</span><span class="n">timestamp</span><span class="p">,</span> <span class="s2">&quot;segment&quot;</span><span class="p">,</span> <span class="p">[])</span>
+
+            <span class="k">if</span> <span class="n">segments</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">segments</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Found </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">segments</span><span class="p">)</span><span class="si">}</span><span class="s2"> transcription segments to align&quot;</span><span class="p">)</span>
+
+                <span class="c1"># Add speaker labels to each segment</span>
+                <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">segment</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">segments</span><span class="p">):</span>
+                    <span class="n">trans_start</span> <span class="o">=</span> <span class="n">segment</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;start&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+                    <span class="n">trans_end</span> <span class="o">=</span> <span class="n">segment</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;end&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+                    <span class="n">trans_duration</span> <span class="o">=</span> <span class="n">trans_end</span> <span class="o">-</span> <span class="n">trans_start</span>
+
+                    <span class="c1"># Find which speakers overlap with this transcription segment</span>
+                    <span class="n">speaker_overlaps</span> <span class="o">=</span> <span class="p">{}</span>
+
+                    <span class="k">for</span> <span class="n">speaker_seg</span> <span class="ow">in</span> <span class="n">speaker_segments</span><span class="p">:</span>
+                        <span class="n">speaker</span> <span class="o">=</span> <span class="n">speaker_seg</span><span class="p">[</span><span class="s2">&quot;speaker&quot;</span><span class="p">]</span>
+                        <span class="n">spk_start</span> <span class="o">=</span> <span class="n">speaker_seg</span><span class="p">[</span><span class="s2">&quot;start&quot;</span><span class="p">]</span>
+                        <span class="n">spk_end</span> <span class="o">=</span> <span class="n">speaker_seg</span><span class="p">[</span><span class="s2">&quot;end&quot;</span><span class="p">]</span>
+
+                        <span class="c1"># Calculate overlap between transcription segment and speaker segment</span>
+                        <span class="n">overlap_start</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">trans_start</span><span class="p">,</span> <span class="n">spk_start</span><span class="p">)</span>
+                        <span class="n">overlap_end</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">trans_end</span><span class="p">,</span> <span class="n">spk_end</span><span class="p">)</span>
+                        <span class="n">overlap_duration</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">overlap_end</span> <span class="o">-</span> <span class="n">overlap_start</span><span class="p">)</span>
+
+                        <span class="k">if</span> <span class="n">overlap_duration</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="k">if</span> <span class="n">speaker</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">speaker_overlaps</span><span class="p">:</span>
+                                <span class="n">speaker_overlaps</span><span class="p">[</span><span class="n">speaker</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+                            <span class="n">speaker_overlaps</span><span class="p">[</span><span class="n">speaker</span><span class="p">]</span> <span class="o">+=</span> <span class="n">overlap_duration</span>
+
+                    <span class="c1"># Assign speaker with longest overlap time</span>
+                    <span class="k">if</span> <span class="n">speaker_overlaps</span><span class="p">:</span>
+                        <span class="n">best_speaker</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">speaker_overlaps</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">speaker_overlaps</span><span class="o">.</span><span class="n">get</span><span class="p">)</span>
+                        <span class="n">segment</span><span class="p">[</span><span class="s2">&quot;speaker&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">best_speaker</span>
+                        <span class="n">segment</span><span class="p">[</span><span class="s2">&quot;speaker_confidence&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">speaker_overlaps</span><span class="p">[</span><span class="n">best_speaker</span><span class="p">]</span> <span class="o">/</span> <span class="n">trans_duration</span> <span class="k">if</span> <span class="n">trans_duration</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">0</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Segment </span><span class="si">{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2"> &#39;</span><span class="si">{</span><span class="n">segment</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;segment&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;&#39;</span><span class="p">)[:</span><span class="mi">50</span><span class="p">]</span><span class="si">}</span><span class="s2">...&#39; assigned to </span><span class="si">{</span><span class="n">best_speaker</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="c1"># No overlap found, assign &quot;unknown&quot;</span>
+                        <span class="n">segment</span><span class="p">[</span><span class="s2">&quot;speaker&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;unknown&quot;</span>
+                        <span class="n">segment</span><span class="p">[</span><span class="s2">&quot;speaker_confidence&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No speaker overlap found for segment </span><span class="si">{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Successfully added speaker tags to all transcription segments&quot;</span><span class="p">)</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;No segments found in timestamp object&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Check if it&#39;s a regular dictionary format (fallback)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">transcription_data</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="n">transcription_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;timestamp&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;segment&quot;</span><span class="p">):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Processing regular dictionary format with timestamps&quot;</span><span class="p">)</span>
+
+            <span class="n">transcription_segments</span> <span class="o">=</span> <span class="n">transcription_data</span><span class="p">[</span><span class="s2">&quot;timestamp&quot;</span><span class="p">][</span><span class="s2">&quot;segment&quot;</span><span class="p">]</span>
+
+            <span class="k">for</span> <span class="n">trans_segment</span> <span class="ow">in</span> <span class="n">transcription_segments</span><span class="p">:</span>
                 <span class="n">trans_start</span> <span class="o">=</span> <span class="n">trans_segment</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;start&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
                 <span class="n">trans_end</span> <span class="o">=</span> <span class="n">trans_segment</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;end&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
                 <span class="n">trans_duration</span> <span class="o">=</span> <span class="n">trans_end</span> <span class="o">-</span> <span class="n">trans_start</span>
@@ -347,17 +417,20 @@
                 <span class="k">if</span> <span class="n">speaker_overlaps</span><span class="p">:</span>
                     <span class="n">best_speaker</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">speaker_overlaps</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">speaker_overlaps</span><span class="o">.</span><span class="n">get</span><span class="p">)</span>
                     <span class="n">trans_segment</span><span class="p">[</span><span class="s2">&quot;speaker&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">best_speaker</span>
-                    <span class="n">trans_segment</span><span class="p">[</span><span class="s2">&quot;speaker_confidence&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">speaker_overlaps</span><span class="p">[</span><span class="n">best_speaker</span><span class="p">]</span> <span class="o">/</span> <span class="n">trans_duration</span>
+                    <span class="n">trans_segment</span><span class="p">[</span><span class="s2">&quot;speaker_confidence&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">speaker_overlaps</span><span class="p">[</span><span class="n">best_speaker</span><span class="p">]</span> <span class="o">/</span> <span class="n">trans_duration</span> <span class="k">if</span> <span class="n">trans_duration</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">0</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="c1"># No overlap found, assign &quot;unknown&quot;</span>
                     <span class="n">trans_segment</span><span class="p">[</span><span class="s2">&quot;speaker&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;unknown&quot;</span>
                     <span class="n">trans_segment</span><span class="p">[</span><span class="s2">&quot;speaker_confidence&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
 
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unrecognized transcription data format: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">transcription_data</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
         <span class="k">return</span> <span class="n">transcription_result</span>
 
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to add speaker tags: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="c1"># Return original result if tagging fails</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to add speaker tags: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="s2">&quot;Full error details:&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">transcription_result</span></div>
 
 </pre></div>
