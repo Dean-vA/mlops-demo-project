@@ -27,16 +27,17 @@ RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1
 RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.11 1
 
 # Set working directory
+RUN mkdir -p /app/src/backend_microservice
 WORKDIR /app/src/backend_microservice
 
 # Install Poetry
 RUN pip install poetry==2.1.3
 
-# Copy source code
-COPY . /app
+# Copy only the necessary files for Poetry to install dependencies
+COPY pyproject.toml poetry.lock README.md /app/src/backend_microservice/
 
 # Install dependencies
-RUN poetry config virtualenvs.create false && poetry install --only main
+RUN poetry config virtualenvs.create false && poetry install --only main --no-root
 
 # Install PyTorch with CUDA support
 RUN pip uninstall -y torch torchvision torchaudio
@@ -46,6 +47,12 @@ RUN pip install huggingface_hub[hf_xet]
 
 # Expose port
 EXPOSE 8000
+
+# Copy the rest of the application code
+COPY . /app/src/backend_microservice/
+
+# Install only the root package
+RUN poetry install --only-root
 
 # Run the application
 CMD ["poetry", "run", "uvicorn", "backend_microservice.main:app", "--host", "0.0.0.0", "--port", "8000"]
