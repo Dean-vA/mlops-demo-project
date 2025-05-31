@@ -18,8 +18,7 @@
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
-    <link rel="search" title="Search" href="../search.html" />
-    <link rel="prev" title="backend_microservice.gpu_utils" href="backend_microservice.gpu_utils.html" /> 
+    <link rel="search" title="Search" href="../search.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -41,18 +40,8 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <ul class="current">
-<li class="toctree-l1 current"><a class="reference internal" href="backend_microservice.html">backend_microservice</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="backend_microservice.gpu_utils.html">backend_microservice.gpu_utils</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">backend_microservice.transcription</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#backend_microservice.transcription.add_speaker_tags_to_segments"><code class="docutils literal notranslate"><span class="pre">add_speaker_tags_to_segments()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#backend_microservice.transcription.is_model_loaded"><code class="docutils literal notranslate"><span class="pre">is_model_loaded()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#backend_microservice.transcription.load_model"><code class="docutils literal notranslate"><span class="pre">load_model()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#backend_microservice.transcription.transcribe_audio"><code class="docutils literal notranslate"><span class="pre">transcribe_audio()</span></code></a></li>
-</ul>
-</li>
-</ul>
-</li>
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="backend_microservice.html">backend_microservice</a></li>
 </ul>
 
         </div>
@@ -69,7 +58,6 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
-          <li class="breadcrumb-item"><a href="backend_microservice.html">backend_microservice</a></li>
       <li class="breadcrumb-item active">backend_microservice.transcription</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/_autosummary/backend_microservice.transcription.rst.txt" rel="nofollow"> View page source</a>
@@ -80,110 +68,14 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="module-backend_microservice.transcription">
-<span id="backend-microservice-transcription"></span><h1>backend_microservice.transcription<a class="headerlink" href="#module-backend_microservice.transcription" title="Link to this heading"></a></h1>
-<p>Functions for audio transcription using NVIDIA’s Parakeet TDT model.</p>
-<p class="rubric">Functions</p>
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#backend_microservice.transcription.add_speaker_tags_to_segments" title="backend_microservice.transcription.add_speaker_tags_to_segments"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_speaker_tags_to_segments</span></code></a>(...)</p></td>
-<td><p>Add speaker tags to transcription segments based on overlap timing.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_device</span></code>()</p></td>
-<td><p>Get the appropriate device (GPU or CPU) for model execution.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#backend_microservice.transcription.is_model_loaded" title="backend_microservice.transcription.is_model_loaded"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_model_loaded</span></code></a>()</p></td>
-<td><p>Check if the model is already loaded.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#backend_microservice.transcription.load_model" title="backend_microservice.transcription.load_model"><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_model</span></code></a>()</p></td>
-<td><p>Load the Parakeet ASR model.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#backend_microservice.transcription.transcribe_audio" title="backend_microservice.transcription.transcribe_audio"><code class="xref py py-obj docutils literal notranslate"><span class="pre">transcribe_audio</span></code></a>(audio_data, filename[, ...])</p></td>
-<td><p>Transcribe audio using NVIDIA's Parakeet TDT model.</p></td>
-</tr>
-</tbody>
-</table>
-<p class="rubric">Classes</p>
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Any</span></code>(*args, **kwargs)</p></td>
-<td><p>Special type indicating an unconstrained type.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">BinaryIO</span></code>()</p></td>
-<td><p>Typed version of the return of open() in binary mode.</p></td>
-</tr>
-</tbody>
-</table>
-<dl class="py function">
-<dt class="sig sig-object py" id="backend_microservice.transcription.add_speaker_tags_to_segments">
-<span class="sig-prename descclassname"><span class="pre">backend_microservice.transcription.</span></span><span class="sig-name descname"><span class="pre">add_speaker_tags_to_segments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">transcription_result</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">diarization_result</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/backend_microservice/transcription.html#add_speaker_tags_to_segments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend_microservice.transcription.add_speaker_tags_to_segments" title="Link to this definition"></a></dt>
-<dd><p>Add speaker tags to transcription segments based on overlap timing.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>transcription_result</strong> – Result from transcribe_audio()</p></li>
-<li><p><strong>diarization_result</strong> – Result from diarize_audio()</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Modified transcription_result with speaker tags added to segments</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="backend_microservice.transcription.is_model_loaded">
-<span class="sig-prename descclassname"><span class="pre">backend_microservice.transcription.</span></span><span class="sig-name descname"><span class="pre">is_model_loaded</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="../_modules/backend_microservice/transcription.html#is_model_loaded"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend_microservice.transcription.is_model_loaded" title="Link to this definition"></a></dt>
-<dd><p>Check if the model is already loaded.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Whether the model is loaded.</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>bool</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="backend_microservice.transcription.load_model">
-<span class="sig-prename descclassname"><span class="pre">backend_microservice.transcription.</span></span><span class="sig-name descname"><span class="pre">load_model</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/backend_microservice/transcription.html#load_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend_microservice.transcription.load_model" title="Link to this definition"></a></dt>
-<dd><p>Load the Parakeet ASR model.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>The loaded model.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="backend_microservice.transcription.transcribe_audio">
-<span class="sig-prename descclassname"><span class="pre">backend_microservice.transcription.</span></span><span class="sig-name descname"><span class="pre">transcribe_audio</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">audio_data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bytes</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">BinaryIO</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_timestamps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chunk_duration_sec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overlap_duration_sec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/backend_microservice/transcription.html#transcribe_audio"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend_microservice.transcription.transcribe_audio" title="Link to this definition"></a></dt>
-<dd><p>Transcribe audio using NVIDIA’s Parakeet TDT model.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>audio_data</strong> – Audio file content.</p></li>
-<li><p><strong>filename</strong> – Name of the audio file.</p></li>
-<li><p><strong>return_timestamps</strong> – Whether to include word-level timestamps.</p></li>
-<li><p><strong>chunk_duration_sec</strong> – Duration in seconds for processing audio in chunks.</p></li>
-<li><p><strong>overlap_duration_sec</strong> – Optional[float] = None,</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Dict containing transcription results.</p>
-</dd>
-</dl>
-</dd></dl>
-
+  <section id="backend-microservice-transcription">
+<h1>backend_microservice.transcription<a class="headerlink" href="#backend-microservice-transcription" title="Link to this heading"></a></h1>
 </section>
 
 
            </div>
           </div>
-          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="backend_microservice.gpu_utils.html" class="btn btn-neutral float-left" title="backend_microservice.gpu_utils" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-    </div>
+          <footer>
 
   <hr/>
 
