@@ -12,6 +12,7 @@ from typing import Any, BinaryIO, Dict, Optional, Union
 import nemo.collections.asr as nemo_asr
 import torch
 
+from .audio_utils import get_audio_duration
 from .gpu_utils import get_device
 
 # Set up logging
@@ -93,10 +94,24 @@ def transcribe_audio(
         temp_file_path = temp_file.name
 
     try:
+        # Check audio duration
+        duration = get_audio_duration(temp_file_path)
+        logger.info(f"Audio duration: {duration:.2f} seconds ({duration/60:.1f} minutes)")
         # Transcribe the audio
         logger.info(f"Transcribing audio file: {filename}")
 
         start_time = time.time()
+
+        # Apply long audio optimizations if > 8 minutes
+        optimization_applied = False
+        if duration > 480:  # 8 minutes
+            try:
+                logger.info("Applying long audio optimizations...")
+                _model.change_attention_model("rel_pos_local_attn", [256, 256])
+                _model.change_subsampling_conv_chunking_factor(1)
+                optimization_applied = True
+            except Exception as e:
+                logger.warning(f"Could not apply optimizations: {e}")
 
         # Force garbage collection before transcription
         gc.collect()
@@ -184,6 +199,14 @@ def transcribe_audio(
         gc.collect()
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
+
+        # Revert optimizations if applied
+        if optimization_applied:
+            try:
+                _model.change_attention_model("rel_pos")
+                _model.change_subsampling_conv_chunking_factor(-1)
+            except Exception as e:
+                logger.warning(f"Could not revert optimizations: {e}")
 
         logger.info("Transcription processing complete")
         return transcription_result
