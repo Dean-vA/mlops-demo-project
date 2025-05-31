@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Parakeet STT - Speech to Text with Speaker Diarization</title>
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon.ico">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.0/axios.min.js"></script>
     <style>
         * {
@@ -347,7 +346,6 @@
             transform: translateX(26px);
         }
 
-        /* NEW: Button container for the two transcription options */
         .transcribe-buttons {
             display: flex;
             gap: 15px;
@@ -379,7 +377,6 @@
             cursor: not-allowed;
         }
 
-        /* NEW: Speaker diarization button styling */
         .transcribe-btn.diarize {
             background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
         }
@@ -486,10 +483,30 @@
             padding: 15px;
             margin-bottom: 15px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+            cursor: pointer;
         }
 
         .segment-item:last-child {
             margin-bottom: 0;
+        }
+
+        .segment-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            background: #f8f9fa;
+        }
+
+        .segment-item.playing {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        }
+
+        .segment-item.loading {
+            background: rgba(255, 193, 7, 0.1);
+            border-color: #ffc107;
         }
 
         .segment-header {
@@ -516,7 +533,35 @@
             font-style: italic;
         }
 
-        /* NEW: Speaker label styling with colors */
+        .play-button {
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.8rem;
+        }
+
+        .play-button:hover {
+            background: #218838;
+            transform: scale(1.1);
+        }
+
+        .play-button.playing {
+            background: #dc3545;
+        }
+
+        .play-button.loading {
+            background: #ffc107;
+            animation: spin 1s linear infinite;
+        }
+
         .speaker-label {
             padding: 4px 12px;
             border-radius: 20px;
@@ -524,6 +569,42 @@
             font-weight: 600;
             color: white;
             white-space: nowrap;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            display: inline-block;
+        }
+
+        /* NEW: Editable speaker label styles */
+        .speaker-label.editable {
+            cursor: text;
+            position: relative;
+        }
+
+        .speaker-label.editing {
+            background: rgba(255, 255, 255, 0.9) !important;
+            color: #333 !important;
+            border: 2px solid #667eea;
+            box-shadow: 0 0 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .speaker-label:hover:not(.editing) {
+            transform: scale(1.05);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .speaker-label-input {
+            background: transparent;
+            border: none;
+            color: inherit;
+            font-size: inherit;
+            font-weight: inherit;
+            font-family: inherit;
+            padding: 0;
+            margin: 0;
+            width: 100%;
+            outline: none;
+            text-align: center;
         }
 
         .speaker-0 { background: linear-gradient(135deg, #FF6B6B, #FF8E53); }
@@ -574,7 +655,6 @@
             font-size: 0.9rem;
         }
 
-        /* NEW: Speaker summary section */
         .speaker-summary {
             background: #f8f9fa;
             border-radius: 10px;
@@ -637,6 +717,56 @@
             background: #f8d7da;
             color: #721c24;
             border: 1px solid #f5c6cb;
+        }
+
+        .audio-notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(102, 126, 234, 0.95);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            display: none;
+            z-index: 1000;
+            font-weight: 600;
+        }
+
+        .audio-notification.show {
+            display: block;
+            animation: slideInUp 0.3s ease;
+        }
+
+        @keyframes slideInUp {
+            from {
+                transform: translateY(100%);
+            }
+            to {
+                transform: translateY(0);
+            }
+        }
+
+        /* NEW: Speaker renaming tooltip */
+        .speaker-rename-hint {
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 1000;
+        }
+
+        .speaker-label:hover .speaker-rename-hint {
+            opacity: 1;
         }
 
         @media (max-width: 768px) {
@@ -744,7 +874,6 @@
                 </div>
             </div>
 
-            <!-- NEW: Two transcription buttons -->
             <div class="transcribe-buttons">
                 <button class="transcribe-btn" id="transcribeBtn" disabled>
                     📝 Transcribe Only
@@ -784,14 +913,13 @@
                     </div>
                 </div>
 
-                <!-- NEW: Speaker summary section -->
                 <div class="result-section" id="speakerSummarySection" style="display: none;">
-                    <h3>👥 Speaker Summary</h3>
+                    <h3>👥 Speaker Summary <span style="font-size: 0.9rem; color: #666; font-weight: normal;">Click names to edit</span></h3>
                     <div class="speaker-summary" id="speakerSummary"></div>
                 </div>
 
                 <div class="result-section" id="segmentsSection" style="display: none;">
-                    <h3>📑 Segments</h3>
+                    <h3>📑 Segments <span style="font-size: 0.9rem; color: #666; font-weight: normal;">Click to play audio</span></h3>
                     <div class="segments" id="segments"></div>
                 </div>
 
@@ -806,6 +934,7 @@
     </div>
 
     <div class="status-indicator" id="statusIndicator">Checking API status...</div>
+    <div class="audio-notification" id="audioNotification">🔊 Playing segment...</div>
 
     <script>
         const API_BASE_URL = 'http://194.171.191.226:3569';
@@ -816,7 +945,15 @@
         let audioStream = null;
         let recordingTimerInterval = null;
         let recordingStartTime = null;
-        let currentMode = 'transcribe'; // 'transcribe' or 'diarize'
+        let currentMode = 'transcribe';
+
+        // Audio playback variables
+        let currentAudio = null;
+        let currentlyPlayingSegment = null;
+
+        // NEW: Speaker renaming variables
+        let speakerNames = {}; // Maps original speaker IDs to custom names
+        let currentlyEditingLabel = null;
 
         // DOM elements
         const uploadArea = document.getElementById('uploadArea');
@@ -846,6 +983,7 @@
         const segmentsToggle = document.getElementById('segmentsToggle');
         const errorMessage = document.getElementById('errorMessage');
         const statusIndicator = document.getElementById('statusIndicator');
+        const audioNotification = document.getElementById('audioNotification');
 
         // Microphone elements
         const fileTab = document.getElementById('fileTab');
@@ -861,6 +999,135 @@
         const recordedDuration = document.getElementById('recordedDuration');
         const replayBtn = document.getElementById('replayBtn');
         const rerecordBtn = document.getElementById('rerecordBtn');
+
+        // NEW: Speaker renaming functions
+        function initializeSpeakerNames(speakers) {
+            speakerNames = {};
+
+            // Create default friendly names for each speaker
+            Object.keys(speakers).forEach((speakerId, index) => {
+                if (speakerId === 'unknown') {
+                    speakerNames[speakerId] = 'Unknown';
+                } else {
+                    speakerNames[speakerId] = `Speaker ${index + 1}`;
+                }
+            });
+        }
+
+        function getDisplayName(speakerId) {
+            return speakerNames[speakerId] || speakerId;
+        }
+
+        function makeEditable(labelElement, originalSpeakerId) {
+            if (currentlyEditingLabel) {
+                finishEditing(currentlyEditingLabel, false);
+            }
+
+            currentlyEditingLabel = labelElement;
+            const currentName = getDisplayName(originalSpeakerId);
+
+            // Add editing class
+            labelElement.classList.add('editing');
+
+            // Create input element
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = currentName;
+            input.className = 'speaker-label-input';
+            input.maxLength = 20;
+
+            // Replace content with input
+            labelElement.innerHTML = '';
+            labelElement.appendChild(input);
+
+            // Focus and select text
+            input.focus();
+            input.select();
+
+            // Handle input events
+            const finishEdit = (save = true) => {
+                finishEditing(labelElement, save, originalSpeakerId, input.value.trim());
+            };
+
+            input.addEventListener('blur', () => finishEdit(true));
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    finishEdit(true);
+                } else if (e.key === 'Escape') {
+                    finishEdit(false);
+                }
+            });
+
+            // Prevent label click from bubbling
+            input.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
+        }
+
+        function finishEditing(labelElement, save = true, originalSpeakerId = null, newName = null) {
+            if (!labelElement || !labelElement.classList.contains('editing')) return;
+
+            labelElement.classList.remove('editing');
+            currentlyEditingLabel = null;
+
+            if (save && originalSpeakerId && newName && newName.length > 0) {
+                // Update speaker name
+                speakerNames[originalSpeakerId] = newName;
+
+                // Update this label
+                const speakerClass = getSpeakerClass(originalSpeakerId);
+                labelElement.innerHTML = `
+                    ${newName.toUpperCase()}
+                    <div class="speaker-rename-hint">Click to rename</div>
+                `;
+
+                // Update all other labels with the same speaker ID
+                updateAllSpeakerLabels(originalSpeakerId, newName);
+            } else {
+                // Restore original content
+                const currentName = originalSpeakerId ? getDisplayName(originalSpeakerId) : labelElement.textContent;
+                labelElement.innerHTML = `
+                    ${currentName.toUpperCase()}
+                    <div class="speaker-rename-hint">Click to rename</div>
+                `;
+            }
+        }
+
+        function updateAllSpeakerLabels(originalSpeakerId, newName) {
+            // Update all speaker labels throughout the interface
+            const allLabels = document.querySelectorAll('.speaker-label');
+
+            allLabels.forEach(label => {
+                const speakerId = label.getAttribute('data-speaker-id');
+                if (speakerId === originalSpeakerId && !label.classList.contains('editing')) {
+                    label.innerHTML = `
+                        ${newName.toUpperCase()}
+                        <div class="speaker-rename-hint">Click to rename</div>
+                    `;
+                }
+            });
+        }
+
+        function createEditableSpeakerLabel(speakerId, additionalClasses = '') {
+            const displayName = getDisplayName(speakerId);
+            const speakerClass = getSpeakerClass(speakerId);
+
+            const label = document.createElement('div');
+            label.className = `speaker-label editable ${speakerClass} ${additionalClasses}`;
+            label.setAttribute('data-speaker-id', speakerId);
+            label.innerHTML = `
+                ${displayName.toUpperCase()}
+                <div class="speaker-rename-hint">Click to rename</div>
+            `;
+
+            // Add click handler for editing
+            label.addEventListener('click', (e) => {
+                e.stopPropagation();
+                makeEditable(label, speakerId);
+            });
+
+            return label;
+        }
 
         // Check API health status
         async function checkApiHealth() {
@@ -897,7 +1164,7 @@
         replayBtn.addEventListener('click', playRecordedAudio);
         rerecordBtn.addEventListener('click', startNewRecording);
 
-        // NEW: Button handlers
+        // Button handlers
         transcribeBtn.addEventListener('click', () => handleTranscription('transcribe'));
         transcribeDiarizeBtn.addEventListener('click', () => handleTranscription('diarize'));
 
@@ -1082,6 +1349,18 @@
         function resetTranscriptionState() {
             results.classList.remove('show');
             hideError();
+            // Stop any playing audio
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio.currentTime = 0;
+                currentAudio = null;
+            }
+            // Reset speaker names
+            speakerNames = {};
+            // Finish any editing
+            if (currentlyEditingLabel) {
+                finishEditing(currentlyEditingLabel, false);
+            }
             if (!selectedFile && !recordedAudioBlob) {
                 disableTranscriptionButtons();
             }
@@ -1163,7 +1442,7 @@
             return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
         }
 
-        // NEW: Enhanced transcription handler
+        // Enhanced transcription handler
         async function handleTranscription(mode) {
             const audioToTranscribe = recordedAudioBlob || selectedFile;
             if (!audioToTranscribe) return;
@@ -1207,6 +1486,13 @@
                     timeout: 300000 // 5 minutes timeout
                 });
 
+                // Create audio object for segment playback
+                if (recordedAudioBlob) {
+                    currentAudio = new Audio(URL.createObjectURL(recordedAudioBlob));
+                } else {
+                    currentAudio = new Audio(URL.createObjectURL(selectedFile));
+                }
+
                 // Display results
                 displayResults(response.data, mode);
 
@@ -1227,7 +1513,7 @@
             }
         }
 
-        // NEW: Enhanced results display with speaker support
+        // Enhanced results display with speaker support
         function displayResults(data, mode) {
             console.log('API Response:', data);
 
@@ -1277,8 +1563,13 @@
             wordCount.textContent = words;
             segmentCount.textContent = segmentTimestamps.length;
 
-            // NEW: Handle speaker information
+            // Handle speaker information
             if (mode === 'diarize' && diarizationData) {
+                // Initialize speaker names
+                if (diarizationData.speakers) {
+                    initializeSpeakerNames(diarizationData.speakers);
+                }
+
                 speakerCount.textContent = diarizationData.num_speakers_detected || 0;
                 speakerCountStat.style.display = 'block';
                 displaySpeakerSummary(diarizationData);
@@ -1306,7 +1597,99 @@
             results.classList.add('show');
         }
 
-        // NEW: Display speaker summary
+        // Audio segment playback functions
+        async function playAudioSegment(startTime, endTime, segmentElement) {
+            if (!currentAudio) {
+                showError('Audio not available for playback');
+                return;
+            }
+
+            try {
+                // Stop any currently playing audio
+                if (currentlyPlayingSegment) {
+                    stopCurrentAudio();
+                }
+
+                // Update UI
+                currentlyPlayingSegment = segmentElement;
+                segmentElement.classList.add('playing');
+
+                const playButton = segmentElement.querySelector('.play-button');
+                if (playButton) {
+                    playButton.textContent = '⏸️';
+                    playButton.classList.add('playing');
+                }
+
+                // Show notification
+                showAudioNotification(`Playing segment (${startTime.toFixed(1)}s - ${endTime.toFixed(1)}s)`);
+
+                // Set up audio event listeners
+                const handleAudioEnd = () => {
+                    stopCurrentAudio();
+                };
+
+                const handleTimeUpdate = () => {
+                    if (currentAudio.currentTime >= endTime) {
+                        stopCurrentAudio();
+                    }
+                };
+
+                currentAudio.addEventListener('ended', handleAudioEnd);
+                currentAudio.addEventListener('timeupdate', handleTimeUpdate);
+
+                // Store cleanup function
+                currentAudio._cleanup = () => {
+                    currentAudio.removeEventListener('ended', handleAudioEnd);
+                    currentAudio.removeEventListener('timeupdate', handleTimeUpdate);
+                };
+
+                // Set start time and play
+                currentAudio.currentTime = startTime;
+                await currentAudio.play();
+
+            } catch (error) {
+                console.error('Error playing audio segment:', error);
+                showError('Could not play audio segment');
+                stopCurrentAudio();
+            }
+        }
+
+        function stopCurrentAudio() {
+            if (currentAudio) {
+                currentAudio.pause();
+
+                // Call cleanup if it exists
+                if (currentAudio._cleanup) {
+                    currentAudio._cleanup();
+                    delete currentAudio._cleanup;
+                }
+            }
+
+            if (currentlyPlayingSegment) {
+                currentlyPlayingSegment.classList.remove('playing');
+
+                const playButton = currentlyPlayingSegment.querySelector('.play-button');
+                if (playButton) {
+                    playButton.textContent = '▶️';
+                    playButton.classList.remove('playing');
+                }
+
+                currentlyPlayingSegment = null;
+            }
+
+            hideAudioNotification();
+        }
+
+        function showAudioNotification(message) {
+            audioNotification.textContent = message;
+            audioNotification.classList.add('show');
+        }
+
+        function hideAudioNotification() {
+            audioNotification.classList.remove('show');
+        }
+
+        // Display speaker summary with editable names
         function displaySpeakerSummary(diarizationData) {
             if (!diarizationData.speakers) {
                 speakerSummarySection.style.display = 'none';
@@ -1332,32 +1715,40 @@
             // Sort by duration (most active first)
             speakerStats.sort((a, b) => b.duration - a.duration);
 
-            // Display each speaker
+            // Display each speaker with editable labels
             speakerStats.forEach(stat => {
                 const percentage = ((stat.duration / totalDuration) * 100).toFixed(1);
-                const speakerClass = getSpeakerClass(stat.speaker);
 
                 const speakerItem = document.createElement('div');
                 speakerItem.className = 'speaker-item';
 
-                speakerItem.innerHTML = `
-                    <div class="speaker-info">
-                        <div class="speaker-label ${speakerClass}">${stat.speaker.toUpperCase()}</div>
-                        <span>${stat.segments} segments</span>
-                    </div>
-                    <div class="speaker-stats">
-                        <span>${stat.duration.toFixed(1)}s</span>
-                        <span>${percentage}%</span>
-                    </div>
+                const speakerInfoDiv = document.createElement('div');
+                speakerInfoDiv.className = 'speaker-info';
+
+                // Create editable speaker label
+                const speakerLabel = createEditableSpeakerLabel(stat.speaker);
+                speakerInfoDiv.appendChild(speakerLabel);
+
+                const segmentsSpan = document.createElement('span');
+                segmentsSpan.textContent = `${stat.segments} segments`;
+                speakerInfoDiv.appendChild(segmentsSpan);
+
+                const speakerStatsDiv = document.createElement('div');
+                speakerStatsDiv.className = 'speaker-stats';
+                speakerStatsDiv.innerHTML = `
+                    <span>${stat.duration.toFixed(1)}s</span>
+                    <span>${percentage}%</span>
                 `;
 
+                speakerItem.appendChild(speakerInfoDiv);
+                speakerItem.appendChild(speakerStatsDiv);
                 speakerSummary.appendChild(speakerItem);
             });
 
             speakerSummarySection.style.display = 'block';
         }
 
-        // NEW: Enhanced segment display with speaker colors
+        // Enhanced segment display with speaker colors and audio playback
         function displaySegments(segmentTimestamps, showSpeakers = false) {
             segments.innerHTML = '';
 
@@ -1367,23 +1758,63 @@
 
                 const duration = (segment.end - segment.start).toFixed(2);
                 const speaker = segment.speaker;
-                const speakerClass = getSpeakerClass(speaker);
 
-                let speakerHtml = '';
+                // Create segment header
+                const segmentHeader = document.createElement('div');
+                segmentHeader.className = 'segment-header';
+
+                const leftSection = document.createElement('div');
+                leftSection.style.cssText = 'display: flex; align-items: center; gap: 10px;';
+
+                // Play button
+                const playButton = document.createElement('button');
+                playButton.className = 'play-button';
+                playButton.title = 'Play this segment';
+                playButton.textContent = '▶️';
+
+                // Time display
+                const timeDiv = document.createElement('div');
+                timeDiv.className = 'segment-time';
+                timeDiv.textContent = `${segment.start.toFixed(2)}s - ${segment.end.toFixed(2)}s`;
+
+                leftSection.appendChild(playButton);
+                leftSection.appendChild(timeDiv);
+
+                // Add speaker label if showing speakers
                 if (showSpeakers && speaker) {
-                    speakerHtml = `<div class="speaker-label ${speakerClass}">${speaker.toUpperCase()}</div>`;
+                    const speakerLabel = createEditableSpeakerLabel(speaker);
+                    leftSection.appendChild(speakerLabel);
                 }
 
-                segmentItem.innerHTML = `
-                    <div class="segment-header">
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <div class="segment-time">${segment.start.toFixed(2)}s - ${segment.end.toFixed(2)}s</div>
-                            ${speakerHtml}
-                        </div>
-                        <div class="segment-duration">${duration}s duration</div>
-                    </div>
-                    <div class="segment-text">${segment.segment}</div>
-                `;
+                // Duration display
+                const durationDiv = document.createElement('div');
+                durationDiv.className = 'segment-duration';
+                durationDiv.textContent = `${duration}s duration`;
+
+                segmentHeader.appendChild(leftSection);
+                segmentHeader.appendChild(durationDiv);
+
+                // Segment text
+                const segmentTextDiv = document.createElement('div');
+                segmentTextDiv.className = 'segment-text';
+                segmentTextDiv.textContent = segment.segment;
+
+                segmentItem.appendChild(segmentHeader);
+                segmentItem.appendChild(segmentTextDiv);
+
+                // Add click handlers for both the segment and play button
+                const playHandler = (e) => {
+                    e.stopPropagation();
+
+                    if (currentlyPlayingSegment === segmentItem) {
+                        stopCurrentAudio();
+                    } else {
+                        playAudioSegment(segment.start, segment.end, segmentItem);
+                    }
+                };
+
+                playButton.addEventListener('click', playHandler);
+                segmentItem.addEventListener('click', playHandler);
 
                 segments.appendChild(segmentItem);
             });
@@ -1405,7 +1836,7 @@
             });
         }
 
-        // NEW: Get speaker color class
+        // Get speaker color class
         function getSpeakerClass(speaker) {
             if (!speaker || speaker === 'unknown') return 'speaker-unknown';
 
@@ -1413,7 +1844,7 @@
             const match = speaker.match(/\d+/);
             if (match) {
                 const num = parseInt(match[0]);
-                return `speaker-${num % 6}`; // Cycle through 6 colors
+                return `speaker-${num % 11}`; // Cycle through 11 colors (0-10)
             }
 
             return 'speaker-unknown';
@@ -1446,6 +1877,13 @@
                 } else {
                     segmentsSection.style.display = 'none';
                 }
+            }
+        });
+
+        // Handle clicks outside of editing labels to finish editing
+        document.addEventListener('click', (e) => {
+            if (currentlyEditingLabel && !currentlyEditingLabel.contains(e.target)) {
+                finishEditing(currentlyEditingLabel, true);
             }
         });
 
