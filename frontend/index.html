@@ -534,32 +534,30 @@
         }
 
         .play-button {
-            background: #28a745;
-            color: white;
+            background: linear-gradient(135deg, #28a745, #20c997);
             border: none;
-            border-radius: 50%;
-            width: 32px;
-            height: 32px;
+            border-radius: 12px;
+            width: 48px;
+            height: 36px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             transition: all 0.3s ease;
-            font-size: 0.8rem;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
         }
 
         .play-button:hover {
-            background: #218838;
-            transform: scale(1.1);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(40, 167, 69, 0.4);
         }
 
         .play-button.playing {
-            background: #dc3545;
-        }
-
-        .play-button.loading {
-            background: #ffc107;
-            animation: spin 1s linear infinite;
+            background: linear-gradient(135deg, #dc3545, #e85d75);
+            animation: pulse-red 1.5s infinite;
         }
 
         .speaker-label {
