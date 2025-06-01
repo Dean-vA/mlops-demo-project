@@ -250,8 +250,20 @@ def add_speaker_tags_to_segments(transcription_result, diarization_result):
         Modified transcription_result with speaker tags added to segments
     """
     try:
+        logger.info("=== SPEAKER ALIGNMENT DEBUG START ===")
+
+        # Log initial memory
+        import os
+
+        import psutil
+
+        process = psutil.Process(os.getpid())
+        initial_memory_gb = process.memory_info().rss / 1024**3
+        logger.info(f"Initial memory usage: {initial_memory_gb:.2f} GB")
+
         # Get diarization segments
         speaker_segments = diarization_result.get("segments", [])
+        logger.info(f"Speaker segments count: {len(speaker_segments)}")
 
         if not speaker_segments:
             logger.info("No speaker segments found, marking all as 'unknown'")
@@ -269,6 +281,11 @@ def add_speaker_tags_to_segments(transcription_result, diarization_result):
             return transcription_result
 
         transcription_data = transcription_result["text"][0]
+        logger.info(f"Transcription data type: {type(transcription_data)}")
+
+        # Check memory after initial processing
+        current_memory_gb = process.memory_info().rss / 1024**3
+        logger.info(f"Memory after initial processing: {current_memory_gb:.2f} GB (Δ {current_memory_gb - initial_memory_gb:.2f} GB)")
 
         # Check if this is a NeMo Hypothesis object
         if hasattr(transcription_data, "timestamp") and transcription_data.timestamp:
@@ -276,52 +293,83 @@ def add_speaker_tags_to_segments(transcription_result, diarization_result):
 
             # Access timestamp data directly from the Hypothesis object
             if hasattr(transcription_data.timestamp, "get"):
-                # It's a dictionary
                 segments = transcription_data.timestamp.get("segment", [])
             else:
-                # It's an object with direct access
                 segments = getattr(transcription_data.timestamp, "segment", [])
+
+            logger.info(f"Found {len(segments)} transcription segments to process")
 
             if segments and len(segments) > 0:
                 logger.info(f"Found {len(segments)} transcription segments to align")
 
-                # Add speaker labels to each segment
-                for i, segment in enumerate(segments):
-                    trans_start = segment.get("start", 0)
-                    trans_end = segment.get("end", 0)
-                    trans_duration = trans_end - trans_start
+                # Process segments in batches to monitor memory
+                batch_size = 50
+                total_segments = len(segments)
 
-                    # Find which speakers overlap with this transcription segment
-                    speaker_overlaps = {}
+                for batch_start in range(0, total_segments, batch_size):
+                    batch_end = min(batch_start + batch_size, total_segments)
+                    batch_segments = segments[batch_start:batch_end]
 
-                    for speaker_seg in speaker_segments:
-                        speaker = speaker_seg["speaker"]
-                        spk_start = speaker_seg["start"]
-                        spk_end = speaker_seg["end"]
+                    logger.info(f"Processing segment batch {batch_start+1}-{batch_end}/{total_segments}")
 
-                        # Calculate overlap between transcription segment and speaker segment
-                        overlap_start = max(trans_start, spk_start)
-                        overlap_end = min(trans_end, spk_end)
-                        overlap_duration = max(0, overlap_end - overlap_start)
+                    # Add speaker labels to each segment in this batch
+                    for i, segment in enumerate(batch_segments):
+                        actual_segment_num = batch_start + i + 1
 
-                        if overlap_duration > 0:
-                            if speaker not in speaker_overlaps:
-                                speaker_overlaps[speaker] = 0
-                            speaker_overlaps[speaker] += overlap_duration
+                        trans_start = segment.get("start", 0)
+                        trans_end = segment.get("end", 0)
+                        trans_duration = trans_end - trans_start
 
-                    # Assign speaker with longest overlap time
-                    if speaker_overlaps:
-                        best_speaker = max(speaker_overlaps, key=speaker_overlaps.get)
-                        segment["speaker"] = best_speaker
-                        segment["speaker_confidence"] = speaker_overlaps[best_speaker] / trans_duration if trans_duration > 0 else 0
-                        logger.info(f"Segment {i+1} '{segment.get('segment', '')[:50]}...' assigned to {best_speaker}")
-                    else:
-                        # No overlap found, assign "unknown"
-                        segment["speaker"] = "unknown"
-                        segment["speaker_confidence"] = 0.0
-                        logger.warning(f"No speaker overlap found for segment {i+1}")
+                        # Find which speakers overlap with this transcription segment
+                        speaker_overlaps = {}
 
-                logger.info("Successfully added speaker tags to all transcription segments")
+                        for speaker_seg in speaker_segments:
+                            speaker = speaker_seg["speaker"]
+                            spk_start = speaker_seg["start"]
+                            spk_end = speaker_seg["end"]
+
+                            # Calculate overlap between transcription segment and speaker segment
+                            overlap_start = max(trans_start, spk_start)
+                            overlap_end = min(trans_end, spk_end)
+                            overlap_duration = max(0, overlap_end - overlap_start)
+
+                            if overlap_duration > 0:
+                                if speaker not in speaker_overlaps:
+                                    speaker_overlaps[speaker] = 0
+                                speaker_overlaps[speaker] += overlap_duration
+
+                        # Assign speaker with longest overlap time
+                        if speaker_overlaps:
+                            best_speaker = max(speaker_overlaps, key=speaker_overlaps.get)
+                            segment["speaker"] = best_speaker
+                            segment["speaker_confidence"] = speaker_overlaps[best_speaker] / trans_duration if trans_duration > 0 else 0
+
+                            # Only log every 100th segment to avoid spam
+                            if actual_segment_num % 100 == 0:
+                                logger.info(f"Segment {actual_segment_num} assigned to {best_speaker}")
+                        else:
+                            segment["speaker"] = "unknown"
+                            segment["speaker_confidence"] = 0.0
+                            if actual_segment_num % 100 == 0:
+                                logger.warning(f"No speaker overlap found for segment {actual_segment_num}")
+
+                    # Check memory after each batch
+                    if batch_end % 200 == 0:  # Every 200 segments
+                        current_memory_gb = process.memory_info().rss / 1024**3
+                        logger.info(
+                            f"Memory after processing {batch_end} segments: {current_memory_gb:.2f} GB (Δ {current_memory_gb - initial_memory_gb:.2f} GB)"
+                        )
+
+                        # Force garbage collection if memory is growing too much
+                        if current_memory_gb - initial_memory_gb > 5.0:  # > 5GB growth
+                            logger.warning(f"Memory grew by {current_memory_gb - initial_memory_gb:.2f} GB, forcing GC")
+                            import gc
+
+                            gc.collect()
+                            after_gc_memory_gb = process.memory_info().rss / 1024**3
+                            logger.info(f"Memory after GC: {after_gc_memory_gb:.2f} GB")
+
+                logger.info("Successfully processed all transcription segments with speaker alignment")
 
             else:
                 logger.warning("No segments found in timestamp object")
@@ -374,3 +422,134 @@ def add_speaker_tags_to_segments(transcription_result, diarization_result):
         logger.error(f"Failed to add speaker tags: {e}")
         logger.exception("Full error details:")
         return transcription_result
+
+
+def extract_data_from_transcription_result(transcription_result: Dict[str, Any]) -> Dict[str, Any]:
+    """Extract clean data from transcription result, completely replacing NeMo Hypothesis objects.
+
+    This function converts the entire transcription result into a clean dictionary
+    that can be safely JSON serialized without complex NeMo objects.
+
+    Args:
+        transcription_result: Dictionary containing transcription data with NeMo Hypothesis objects
+
+    Returns:
+        Clean dictionary with all NeMo objects converted to simple types
+    """
+    logger.info("=== EXTRACT COMPLETE TRANSCRIPTION DATA ===")
+
+    # Extract basic fields
+    processing_time = transcription_result.get("processing_time_sec", 0.0)
+    if processing_time is None:
+        processing_time = 0.0
+    else:
+        processing_time = float(processing_time)
+
+    # Initialize clean result
+    clean_result = {
+        "processing_time_sec": processing_time,
+        "text": "",  # Simple text string
+        "segments": [],  # Clean segment list
+        "timestamps": {"word": [], "segment": []},
+    }
+
+    # Extract text and segments from the NeMo Hypothesis objects
+    if transcription_result.get("text") and isinstance(transcription_result["text"], list):
+        logger.info(f"Processing {len(transcription_result['text'])} text items")
+
+        for text_item in transcription_result["text"]:
+            # Extract the main text
+            if hasattr(text_item, "text"):
+                clean_result["text"] = str(text_item.text)
+            elif isinstance(text_item, dict) and "text" in text_item:
+                clean_result["text"] = str(text_item["text"])
+
+            # Extract timestamps if available
+            timestamp_data = None
+            if hasattr(text_item, "timestamp"):
+                timestamp_data = text_item.timestamp
+            elif isinstance(text_item, dict) and "timestamp" in text_item:
+                timestamp_data = text_item["timestamp"]
+
+            if timestamp_data:
+                # Extract word timestamps
+                word_timestamps = []
+                if hasattr(timestamp_data, "word"):
+                    word_data = timestamp_data.word
+                elif isinstance(timestamp_data, dict) and "word" in timestamp_data:
+                    word_data = timestamp_data["word"]
+                else:
+                    word_data = None
+
+                if word_data:
+                    for word_item in word_data:
+                        try:
+                            if isinstance(word_item, dict):
+                                word_timestamps.append(
+                                    {"word": str(word_item.get("word", "")), "start": float(word_item.get("start", 0)), "end": float(word_item.get("end", 0))}
+                                )
+                            else:
+                                # Handle NeMo object
+                                word_timestamps.append(
+                                    {
+                                        "word": str(getattr(word_item, "word", "")),
+                                        "start": float(getattr(word_item, "start", 0)),
+                                        "end": float(getattr(word_item, "end", 0)),
+                                    }
+                                )
+                        except Exception as e:
+                            logger.warning(f"Error extracting word timestamp: {e}")
+                            continue
+
+                clean_result["timestamps"]["word"] = word_timestamps
+
+                # Extract segment timestamps (with speaker info if available)
+                segment_timestamps = []
+                segments = []
+
+                if hasattr(timestamp_data, "segment"):
+                    segment_data = timestamp_data.segment
+                elif isinstance(timestamp_data, dict) and "segment" in timestamp_data:
+                    segment_data = timestamp_data["segment"]
+                else:
+                    segment_data = None
+
+                if segment_data:
+                    for seg_item in segment_data:
+                        try:
+                            if isinstance(seg_item, dict):
+                                segment_info = {
+                                    "start": float(seg_item.get("start", 0)),
+                                    "end": float(seg_item.get("end", 0)),
+                                    "text": str(seg_item.get("segment", "")),
+                                }
+                                # Add speaker info if available
+                                if "speaker" in seg_item:
+                                    segment_info["speaker"] = str(seg_item["speaker"])
+                                    segment_info["speaker_confidence"] = float(seg_item.get("speaker_confidence", 0.0))
+                            else:
+                                # Handle NeMo object
+                                segment_info = {
+                                    "start": float(getattr(seg_item, "start", 0)),
+                                    "end": float(getattr(seg_item, "end", 0)),
+                                    "text": str(getattr(seg_item, "segment", "")),
+                                }
+                                # Add speaker info if available
+                                if hasattr(seg_item, "speaker"):
+                                    segment_info["speaker"] = str(seg_item.speaker)
+                                    segment_info["speaker_confidence"] = float(getattr(seg_item, "speaker_confidence", 0.0))
+
+                            segment_timestamps.append(segment_info)
+                            segments.append(segment_info)
+
+                        except Exception as e:
+                            logger.warning(f"Error extracting segment timestamp: {e}")
+                            continue
+
+                clean_result["timestamps"]["segment"] = segment_timestamps
+                clean_result["segments"] = segments
+
+    logger.info(f"Extracted clean transcription with {len(clean_result['segments'])} segments")
+    logger.info("=== EXTRACT COMPLETE TRANSCRIPTION DATA END ===")
+
+    return clean_result

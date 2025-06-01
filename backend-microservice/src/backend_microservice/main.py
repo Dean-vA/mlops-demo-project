@@ -1,12 +1,22 @@
+import gc
 import logging
-from typing import Optional
+import os
+import sys
+from typing import Any, Optional
 
+import psutil
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
 from .diarization import diarize_audio, is_diarizer_loaded, load_diarizer
 from .gpu_utils import get_gpu_info
-from .transcription import is_model_loaded, load_model, transcribe_audio
+from .transcription import (
+    add_speaker_tags_to_segments,
+    extract_data_from_transcription_result,
+    is_model_loaded,
+    load_model,
+    transcribe_audio,
+)
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -23,6 +33,67 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+def log_memory_usage(stage: str, logger):
+    """Log detailed memory usage information."""
+    try:
+        # Process memory info
+        process = psutil.Process(os.getpid())
+        memory_info = process.memory_info()
+        memory_percent = process.memory_percent()
+
+        # System memory info
+        system_memory = psutil.virtual_memory()
+
+        logger.info(f"=== MEMORY DEBUG [{stage}] ===")
+        logger.info(f"Process RSS: {memory_info.rss / 1024**3:.2f} GB")
+        logger.info(f"Process VMS: {memory_info.vms / 1024**3:.2f} GB")
+        logger.info(f"Process Memory %: {memory_percent:.1f}%")
+        logger.info(f"System Memory Used: {system_memory.used / 1024**3:.2f} GB / {system_memory.total / 1024**3:.2f} GB")
+        logger.info(f"System Memory %: {system_memory.percent:.1f}%")
+        logger.info(f"System Available: {system_memory.available / 1024**3:.2f} GB")
+
+        # Python object counts
+        logger.info(f"Python objects in memory: {len(gc.get_objects()):,}")
+
+    except Exception as e:
+        logger.warning(f"Could not get memory info: {e}")
+
+
+def log_data_structure_size(obj: Any, name: str, logger, max_depth: int = 2):
+    """Log the approximate size of data structures."""
+    try:
+        # Get size of object
+        size_bytes = sys.getsizeof(obj)
+        size_mb = size_bytes / 1024**2
+
+        logger.info(f"=== DATA SIZE [{name}] ===")
+        logger.info(f"Base size: {size_mb:.2f} MB")
+        logger.info(f"Type: {type(obj)}")
+
+        # Analyze structure if it's a dict
+        if isinstance(obj, dict):
+            logger.info(f"Dict keys: {list(obj.keys())}")
+            for key, value in obj.items():
+                if max_depth > 0:
+                    value_size = sys.getsizeof(value) / 1024**2
+                    logger.info(f"  {key}: {type(value)} - {value_size:.2f} MB")
+
+                    # Drill down into large structures
+                    if isinstance(value, (list, dict)) and value_size > 1.0:  # > 1MB
+                        if isinstance(value, list):
+                            logger.info(f"    List length: {len(value)}")
+                            if value and max_depth > 1:
+                                sample = value[0] if len(value) > 0 else None
+                                if sample:
+                                    sample_size = sys.getsizeof(sample) / 1024
+                                    logger.info(f"    Sample item: {type(sample)} - {sample_size:.2f} KB")
+                        elif isinstance(value, dict):
+                            logger.info(f"    Dict keys: {list(value.keys())[:10]}...")  # First 10 keys
+
+    except Exception as e:
+        logger.warning(f"Could not analyze data structure {name}: {e}")
 
 
 # Define a simple endpoint
@@ -197,21 +268,35 @@ async def transcribe_and_diarize(
 
         # Add speaker tags to transcription segments
         logger.info("Adding speaker tags to transcription segments...")
-        from .transcription import add_speaker_tags_to_segments
-
         enhanced_transcription = add_speaker_tags_to_segments(transcription_result, diarization_result)
 
-        # Combine results
+        # Convert ALL NeMo objects to clean dictionaries
+        logger.info("Converting complete transcription to clean format...")
+        clean_transcription = extract_data_from_transcription_result(enhanced_transcription)
+
+        # Get processing times from original results
+        trans_processing_time = transcription_result.get("processing_time_sec", 0.0) or 0.0
+        diar_processing_time = diarization_result.get("processing_time_sec", 0.0) or 0.0
+        combined_processing_time = trans_processing_time + diar_processing_time
+
+        # Ensure processing time is preserved in clean result
+        clean_transcription["processing_time_sec"] = trans_processing_time
+
         combined_result = {
-            "transcription": enhanced_transcription,  # Now includes speaker tags!
+            "transcription": clean_transcription,  # Now completely clean!
             "diarization": diarization_result,
-            "combined_processing_time": (transcription_result.get("processing_time_sec", 0) + diarization_result.get("processing_time_sec", 0)),
+            "combined_processing_time": combined_processing_time,
         }
+
+        # Cleanup
+        del transcription_result, diarization_result, enhanced_transcription
+        gc.collect()
 
         return combined_result
 
     except Exception as e:
         logger.error(f"Combined transcription and diarization error: {str(e)}")
+        logger.exception("Full traceback:")
         raise HTTPException(status_code=500, detail=str(e))
 
 
