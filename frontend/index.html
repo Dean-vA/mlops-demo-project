@@ -1531,7 +1531,24 @@
             let wordTimestamps = [];
             let segmentTimestamps = [];
 
-            if (Array.isArray(transcriptionData.text) && transcriptionData.text.length > 0) {
+            if (typeof transcriptionData.text === 'string') {
+                // Clean format: text is a simple string
+                transcriptionText_content = transcriptionData.text;
+
+                // Get segments directly from the segments array
+                if (transcriptionData.segments && Array.isArray(transcriptionData.segments)) {
+                    segmentTimestamps = transcriptionData.segments;
+                    console.log(`Found ${segmentTimestamps.length} segments in clean format`);
+                }
+
+                // Get word timestamps if available
+                if (transcriptionData.timestamps && transcriptionData.timestamps.word) {
+                    wordTimestamps = transcriptionData.timestamps.word;
+                    console.log(`Found ${wordTimestamps.length} word timestamps in clean format`);
+                }
+            }
+            // Legacy format handling (in case old format is still used)
+            else if (Array.isArray(transcriptionData.text) && transcriptionData.text.length > 0) {
                 transcriptionText_content = transcriptionData.text[0].text || 'No transcription found';
 
                 if (transcriptionData.text[0].timestamp && transcriptionData.text[0].timestamp.word) {
@@ -1546,6 +1563,10 @@
             } else {
                 transcriptionText_content = 'No transcription text found';
             }
+
+            console.log(`Transcription text: ${transcriptionText_content.substring(0, 100)}...`);
+            console.log(`Word timestamps: ${wordTimestamps.length}`);
+            console.log(`Segment timestamps: ${segmentTimestamps.length}`);
 
             // Display transcription text
             transcriptionText.textContent = transcriptionText_content;
@@ -1748,14 +1769,38 @@
 
         // Enhanced segment display with speaker colors and audio playback
         function displaySegments(segmentTimestamps, showSpeakers = false) {
+            console.log('displaySegments called with:', segmentTimestamps.length, 'segments, showSpeakers:', showSpeakers);
             segments.innerHTML = '';
 
             segmentTimestamps.forEach((segment, index) => {
+                console.log(`Processing segment ${index}:`, segment);
+
                 const segmentItem = document.createElement('div');
                 segmentItem.className = 'segment-item';
 
-                const duration = (segment.end - segment.start).toFixed(2);
-                const speaker = segment.speaker;
+                // FIXED: Handle both old and new segment format
+                let segmentStart, segmentEnd, segmentText, segmentSpeaker;
+
+                if (segment.start !== undefined && segment.end !== undefined && segment.text !== undefined) {
+                    // New clean format
+                    segmentStart = segment.start;
+                    segmentEnd = segment.end;
+                    segmentText = segment.text;
+                    segmentSpeaker = segment.speaker;
+                } else if (segment.segment !== undefined) {
+                    // Old NeMo format (fallback)
+                    segmentStart = segment.start;
+                    segmentEnd = segment.end;
+                    segmentText = segment.segment; // Note: different field name
+                    segmentSpeaker = segment.speaker;
+                } else {
+                    console.error('Unknown segment format:', segment);
+                    return; // Skip this segment
+                }
+
+                const duration = (segmentEnd - segmentStart).toFixed(2);
+
+                console.log(`Segment ${index}: "${segmentText}" (${segmentStart}-${segmentEnd}s, speaker: ${segmentSpeaker})`);
 
                 // Create segment header
                 const segmentHeader = document.createElement('div');
@@ -1773,14 +1818,14 @@
                 // Time display
                 const timeDiv = document.createElement('div');
                 timeDiv.className = 'segment-time';
-                timeDiv.textContent = `${segment.start.toFixed(2)}s - ${segment.end.toFixed(2)}s`;
+                timeDiv.textContent = `${segmentStart.toFixed(2)}s - ${segmentEnd.toFixed(2)}s`;
 
                 leftSection.appendChild(playButton);
                 leftSection.appendChild(timeDiv);
 
-                // Add speaker label if showing speakers
-                if (showSpeakers && speaker) {
-                    const speakerLabel = createEditableSpeakerLabel(speaker);
+                // Add speaker label if showing speakers and speaker info exists
+                if (showSpeakers && segmentSpeaker) {
+                    const speakerLabel = createEditableSpeakerLabel(segmentSpeaker);
                     leftSection.appendChild(speakerLabel);
                 }
 
@@ -1792,10 +1837,12 @@
                 segmentHeader.appendChild(leftSection);
                 segmentHeader.appendChild(durationDiv);
 
-                // Segment text
+                // Segment text - FIXED: Make sure text is displayed
                 const segmentTextDiv = document.createElement('div');
                 segmentTextDiv.className = 'segment-text';
-                segmentTextDiv.textContent = segment.segment;
+                segmentTextDiv.textContent = segmentText || 'No text available'; // Fallback text
+
+                console.log(`Setting segment text to: "${segmentText}"`);
 
                 segmentItem.appendChild(segmentHeader);
                 segmentItem.appendChild(segmentTextDiv);
@@ -1807,7 +1854,7 @@
                     if (currentlyPlayingSegment === segmentItem) {
                         stopCurrentAudio();
                     } else {
-                        playAudioSegment(segment.start, segment.end, segmentItem);
+                        playAudioSegment(segmentStart, segmentEnd, segmentItem);
                     }
                 };
 
@@ -1816,6 +1863,8 @@
 
                 segments.appendChild(segmentItem);
             });
+
+            console.log(`Displayed ${segmentTimestamps.length} segments`);
         }
 
         function displayTimestamps(wordTimestamps) {
