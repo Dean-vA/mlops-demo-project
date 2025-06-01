@@ -261,13 +261,13 @@ def diarize_audio(audio_data: Union[bytes, BinaryIO], filename: str, num_speaker
             rttm_file = os.path.join(rttm_dir, rttm_files[0])
 
             # Debug: Log RTTM file contents
-            logger.info(f"Reading RTTM file: {rttm_file}")
-            try:
-                with open(rttm_file, "r") as f:
-                    rttm_content = f.read()
-                    logger.info(f"RTTM file contents:\n{rttm_content}")
-            except Exception as debug_e:
-                logger.warning(f"Could not read RTTM for debugging: {debug_e}")
+            # logger.info(f"Reading RTTM file: {rttm_file}")
+            # try:
+            #     with open(rttm_file, "r") as f:
+            #         rttm_content = f.read()
+            #         # logger.info(f"RTTM file contents:\n{rttm_content}")
+            # except Exception as debug_e:
+            #     logger.warning(f"Could not read RTTM for debugging: {debug_e}")
 
             speaker_segments = parse_rttm_file(rttm_file)
 
