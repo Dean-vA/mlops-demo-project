@@ -793,7 +793,57 @@
                 align-items: flex-start;
                 gap: 8px;
             }
+            .download-buttons {
+                flex-direction: column;
+            }
         }
+
+        /* Download buttons styling */
+        .download-section {
+            display: none;
+            margin-top: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            border-left: 4px solid #28a745;
+        }
+
+        .download-section.show {
+            display: block;
+        }
+
+        .download-buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+
+        .download-btn {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(40, 167, 69, 0.3);
+        }
+
+        .download-btn:active {
+            transform: translateY(0);
+        }
+
     </style>
 </head>
 <body>
@@ -881,6 +931,22 @@
                 </button>
             </div>
 
+            <div class="download-section" id="downloadSection">
+                <h3>📥 Download Transcript</h3>
+                <p>Download your transcript in different formats</p>
+                <div class="download-buttons">
+                    <button class="download-btn" id="downloadTxtBtn">
+                        📄 Plain Text (.txt)
+                    </button>
+                    <button class="download-btn" id="downloadCsvBtn">
+                        📊 CSV with Speakers (.csv)
+                    </button>
+                    <button class="download-btn" id="downloadJsonBtn">
+                        🔧 JSON Data (.json)
+                    </button>
+                </div>
+            </div>
+
             <div class="loading" id="loading">
                 <div class="spinner"></div>
                 <span id="loadingText">Transcribing your audio...</span>
@@ -944,6 +1010,7 @@
         let recordingTimerInterval = null;
         let recordingStartTime = null;
         let currentMode = 'transcribe';
+        let currentTranscriptionData = null; // Store the complete transcription data for downloads
 
         // Audio playback variables
         let currentAudio = null;
@@ -997,6 +1064,12 @@
         const recordedDuration = document.getElementById('recordedDuration');
         const replayBtn = document.getElementById('replayBtn');
         const rerecordBtn = document.getElementById('rerecordBtn');
+
+        // NEW: Download elements
+        const downloadSection = document.getElementById('downloadSection');
+        const downloadTxtBtn = document.getElementById('downloadTxtBtn');
+        const downloadCsvBtn = document.getElementById('downloadCsvBtn');
+        const downloadJsonBtn = document.getElementById('downloadJsonBtn');
 
         // NEW: Speaker renaming functions
         function initializeSpeakerNames(speakers) {
@@ -1165,6 +1238,11 @@
         // Button handlers
         transcribeBtn.addEventListener('click', () => handleTranscription('transcribe'));
         transcribeDiarizeBtn.addEventListener('click', () => handleTranscription('diarize'));
+
+        // NEW: Download button handlers
+        downloadTxtBtn.addEventListener('click', () => downloadTranscript('txt'));
+        downloadCsvBtn.addEventListener('click', () => downloadTranscript('csv'));
+        downloadJsonBtn.addEventListener('click', () => downloadTranscript('json'));
 
         function switchTab(tab) {
             if (tab === 'file') {
@@ -1346,6 +1424,8 @@
 
         function resetTranscriptionState() {
             results.classList.remove('show');
+            downloadSection.classList.remove('show');
+            currentTranscriptionData = null;
             hideError();
             // Stop any playing audio
             if (currentAudio) {
@@ -1481,7 +1561,7 @@
                     headers: {
                         'Content-Type': 'multipart/form-data'
                     },
-                    timeout: 300000 // 5 minutes timeout
+                    timeout: 600000 // 10 minutes timeout
                 });
 
                 // Create audio object for segment playback
@@ -1490,6 +1570,9 @@
                 } else {
                     currentAudio = new Audio(URL.createObjectURL(selectedFile));
                 }
+
+                // Store the complete data for downloads
+                currentTranscriptionData = response.data;
 
                 // Display results
                 displayResults(response.data, mode);
@@ -1614,6 +1697,166 @@
             }
 
             results.classList.add('show');
+            downloadSection.classList.add('show');
+        }
+
+        // NEW: Download functions
+        function downloadTranscript(format) {
+            if (!currentTranscriptionData) {
+                showError('No transcription data available for download');
+                return;
+            }
+
+            let content = '';
+            let filename = '';
+            let mimeType = '';
+
+            const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+
+            switch (format) {
+                case 'txt':
+                    content = generatePlainText();
+                    filename = `transcript_${timestamp}.txt`;
+                    mimeType = 'text/plain';
+                    break;
+                case 'csv':
+                    content = generateCSV();
+                    filename = `transcript_${timestamp}.csv`;
+                    mimeType = 'text/csv';
+                    break;
+                case 'json':
+                    content = JSON.stringify(currentTranscriptionData, null, 2);
+                    filename = `transcript_${timestamp}.json`;
+                    mimeType = 'application/json';
+                    break;
+            }
+
+            // Create and trigger download
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            // Show brief confirmation
+            showSuccess(`Downloaded ${filename}`);
+        }
+
+        function generatePlainText() {
+            let content = '';
+
+            // Add header
+            content += `TRANSCRIPT\n`;
+            content += `Generated: ${new Date().toLocaleString()}\n`;
+            content += `Processing Time: ${processingTime.textContent}s\n`;
+            content += `Word Count: ${wordCount.textContent}\n`;
+
+            if (currentMode === 'diarize' && currentTranscriptionData.diarization) {
+                content += `Speakers Detected: ${speakerCount.textContent}\n`;
+            }
+
+            content += `\n${'='.repeat(50)}\n\n`;
+
+            // Add transcription
+            let transcriptionData = currentTranscriptionData;
+            if (currentMode === 'diarize' && currentTranscriptionData.transcription) {
+                transcriptionData = currentTranscriptionData.transcription;
+            }
+
+            if (transcriptionData.segments && transcriptionData.segments.length > 0) {
+                // Segment-by-segment format
+                transcriptionData.segments.forEach((segment, index) => {
+                    const startTime = formatTime(segment.start);
+                    const endTime = formatTime(segment.end);
+
+                    // Use edited speaker name if available, otherwise use original
+                    let speakerLabel = '';
+                    if (segment.speaker) {
+                        const displayName = getDisplayName(segment.speaker); // Use your existing function
+                        speakerLabel = `[${displayName.toUpperCase()}] `;
+                    }
+
+                    content += `[${startTime} - ${endTime}] ${speakerLabel}${segment.text}\n\n`;
+                });
+            } else {
+                // Plain text format
+                const text = typeof transcriptionData.text === 'string'
+                    ? transcriptionData.text
+                    : (transcriptionData.text[0]?.text || 'No text available');
+                content += text;
+            }
+
+            return content;
+        }
+
+        function generateCSV() {
+            let content = '';
+
+            // Determine if we have speaker information
+            const hasSpeakers = currentMode === 'diarize' && currentTranscriptionData.diarization;
+
+            // CSV Header
+            if (hasSpeakers) {
+                content += 'Start Time,End Time,Duration,Speaker,Text\n';
+            } else {
+                content += 'Start Time,End Time,Duration,Text\n';
+            }
+
+            // Get transcription data
+            let transcriptionData = currentTranscriptionData;
+            if (currentMode === 'diarize' && currentTranscriptionData.transcription) {
+                transcriptionData = currentTranscriptionData.transcription;
+            }
+
+            if (transcriptionData.segments && transcriptionData.segments.length > 0) {
+                transcriptionData.segments.forEach(segment => {
+                    const startTime = segment.start.toFixed(2);
+                    const endTime = segment.end.toFixed(2);
+                    const duration = (segment.end - segment.start).toFixed(2);
+                    const text = `"${segment.text.replace(/"/g, '""')}"`;
+
+                    if (hasSpeakers) {
+                        // Use edited speaker name if available, otherwise use original or 'Unknown'
+                        const originalSpeaker = segment.speaker || 'Unknown';
+                        const displayName = originalSpeaker !== 'Unknown' ? getDisplayName(originalSpeaker) : 'Unknown';
+                        content += `${startTime},${endTime},${duration},${displayName},${text}\n`;
+                    } else {
+                        content += `${startTime},${endTime},${duration},${text}\n`;
+                    }
+                });
+            } else {
+                // Fallback for plain text
+                const text = typeof transcriptionData.text === 'string'
+                    ? transcriptionData.text
+                    : (transcriptionData.text[0]?.text || 'No text available');
+                const cleanText = `"${text.replace(/"/g, '""')}"`;
+                content += `0.00,0.00,0.00,${hasSpeakers ? 'Unknown,' : ''}${cleanText}\n`;
+            }
+
+            return content;
+        }
+
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const secs = (seconds % 60).toFixed(1);
+            return `${minutes}:${secs.padStart(4, '0')}`;
+        }
+
+        function showSuccess(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            errorMessage.style.background = '#d4edda';
+            errorMessage.style.color = '#155724';
+            errorMessage.style.borderLeft = '4px solid #28a745';
+
+            // Hide after 3 seconds
+            setTimeout(() => {
+                hideError();
+            }, 3000);
         }
 
         // Audio segment playback functions
