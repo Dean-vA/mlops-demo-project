@@ -27,3 +27,6 @@ dependencies:
   - azure-ai-ml>=1.27.1,<2.0.0
   - azure-identity>=1.23.0,<2.0.0
   - poetry2conda>=0.3.0,<0.4.0
+  - pandas>=2.1.3,<3.0.0
+  - peft
+  - datasets
