@@ -94,11 +94,17 @@ poetry<span class="w"> </span>run<span class="w"> </span>uvicorn<span class="w">
 <section id="api-endpoints">
 <h2>API Endpoints<a class="headerlink" href="#api-endpoints" title="Link to this heading"></a></h2>
 <p><strong>GET /</strong> - Welcome message</p>
-<p><strong>GET /health</strong> - Health check</p>
+<p><strong>GET /health</strong> - Health check with model status</p>
+<p><strong>GET /gpu-info</strong> - Detailed GPU information</p>
 <p><strong>POST /transcribe</strong> - Transcribe audio file</p>
-<p>Parameters:
+<p><strong>POST /diarize</strong> - Perform speaker diarization</p>
+<p><strong>POST /transcribe_and_diarize</strong> - Combined transcription and speaker diarization</p>
+<p>Parameters for transcription endpoints:
 - <code class="docutils literal notranslate"><span class="pre">file</span></code>: Audio file (.wav or .flac)
-- <code class="docutils literal notranslate"><span class="pre">return_timestamps</span></code>: Include timestamps (default: true)</p>
+- <code class="docutils literal notranslate"><span class="pre">return_timestamps</span></code>: Include timestamps (default: true)
+- <code class="docutils literal notranslate"><span class="pre">chunk_duration_sec</span></code>: Duration for processing chunks
+- <code class="docutils literal notranslate"><span class="pre">overlap_duration_sec</span></code>: Overlap duration between chunks
+- <code class="docutils literal notranslate"><span class="pre">num_speakers</span></code>: Number of speakers (for diarization, optional)</p>
 </section>
 <section id="quick-start-development">
 <h2>Quick Start Development<a class="headerlink" href="#quick-start-development" title="Link to this heading"></a></h2>
@@ -156,6 +162,14 @@ poetry<span class="w"> </span>run<span class="w"> </span>uvicorn<span class="w">
 </tbody>
 </table>
 </section>
+</section>
+<section id="indices-and-tables">
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Link to this heading"></a></h1>
+<ul class="simple">
+<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
+<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
+<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
+</ul>
 </section>
 
 

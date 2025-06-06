@@ -1,0 +1,511 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>backend_microservice.diarization &mdash; MLOps Demo Project - Parakeet STT API beta documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=f0d2c090"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            MLOps Demo Project - Parakeet STT API
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../_autosummary/backend_microservice.html">backend_microservice</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">MLOps Demo Project - Parakeet STT API</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">backend_microservice.diarization</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for backend_microservice.diarization</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Real speaker diarization using NVIDIA&#39;s NeMo models with default configurations.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">urllib.request</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">BinaryIO</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">nemo.collections.asr</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nemo_asr</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">omegaconf</span><span class="w"> </span><span class="kn">import</span> <span class="n">OmegaConf</span>
+
+<span class="c1"># Set up logging</span>
+<span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="c1"># Global variables for diarization models</span>
+<span class="n">_diarizer_model</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># Will hold the loaded diarization model</span>
+<span class="n">_config_loaded</span> <span class="o">=</span> <span class="kc">False</span>
+
+
+<div class="viewcode-block" id="download_default_config">
+<a class="viewcode-back" href="../../_autosummary/backend_microservice.diarization.html#backend_microservice.diarization.download_default_config">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">download_default_config</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Download default NeMo diarization configuration.&quot;&quot;&quot;</span>
+    <span class="c1"># Use the general meeting config as it&#39;s most versatile</span>
+    <span class="n">config_url</span> <span class="o">=</span> <span class="s2">&quot;https://raw.githubusercontent.com/NVIDIA/NeMo/main/examples/speaker_tasks/diarization/conf/inference/diar_infer_meeting.yaml&quot;</span>
+
+    <span class="c1"># Create temp file for config</span>
+    <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">NamedTemporaryFile</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">&quot;w+&quot;</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="s2">&quot;.yaml&quot;</span><span class="p">,</span> <span class="n">delete</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">config_path</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">name</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Downloading default NeMo diarization config...&quot;</span><span class="p">)</span>
+        <span class="n">urllib</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">urlretrieve</span><span class="p">(</span><span class="n">config_url</span><span class="p">,</span> <span class="n">config_path</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Downloaded config to: </span><span class="si">{</span><span class="n">config_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">config_path</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to download config: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">raise</span></div>
+
+
+
+<div class="viewcode-block" id="load_diarizer">
+<a class="viewcode-back" href="../../_autosummary/backend_microservice.diarization.html#backend_microservice.diarization.load_diarizer">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_diarizer</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Load the speaker diarization model using default NeMo config.&quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">_diarizer_model</span><span class="p">,</span> <span class="n">_config_loaded</span>
+
+    <span class="k">if</span> <span class="n">_diarizer_model</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_diarizer_model</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Loading NeMo speaker diarization model...&quot;</span><span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># Download default config if not already done</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">_config_loaded</span><span class="p">:</span>
+            <span class="n">config_path</span> <span class="o">=</span> <span class="n">download_default_config</span><span class="p">()</span>
+            <span class="n">_config_loaded</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">config_path</span> <span class="o">=</span> <span class="n">download_default_config</span><span class="p">()</span>  <span class="c1"># Re-download for safety</span>
+
+        <span class="c1"># Load the config</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="n">OmegaConf</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">config_path</span><span class="p">)</span>
+
+        <span class="c1"># Fix Docker multiprocessing issues</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">num_workers</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># Disable multiprocessing for Docker compatibility</span>
+
+        <span class="c1"># Set required fields that are marked with ???</span>
+        <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">TemporaryDirectory</span><span class="p">():</span>
+            <span class="c1"># These will be set dynamically for each request</span>
+            <span class="n">config</span><span class="o">.</span><span class="n">diarizer</span><span class="o">.</span><span class="n">manifest_filepath</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># Set during inference</span>
+            <span class="n">config</span><span class="o">.</span><span class="n">diarizer</span><span class="o">.</span><span class="n">out_dir</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># Set during inference</span>
+
+            <span class="c1"># Set device</span>
+            <span class="n">device</span> <span class="o">=</span> <span class="s2">&quot;cuda&quot;</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Using device: </span><span class="si">{</span><span class="n">device</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="c1"># The config already has good defaults, we just need to make sure</span>
+            <span class="c1"># the required fields are accessible</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Creating ClusteringDiarizer with downloaded config...&quot;</span><span class="p">)</span>
+
+            <span class="c1"># Create the model</span>
+            <span class="n">_diarizer_model</span> <span class="o">=</span> <span class="n">nemo_asr</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">ClusteringDiarizer</span><span class="p">(</span><span class="n">cfg</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
+
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;NeMo speaker diarization model loaded successfully&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">_diarizer_model</span>
+
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to load NeMo diarization model: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Try a simpler approach - create minimal config</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Trying simplified config approach...&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">load_simple_diarizer</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="load_simple_diarizer">
+<a class="viewcode-back" href="../../_autosummary/backend_microservice.diarization.html#backend_microservice.diarization.load_simple_diarizer">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_simple_diarizer</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Load diarizer with a minimal, working configuration.&quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">_diarizer_model</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># Create minimal config structure based on working examples</span>
+        <span class="n">simple_config</span> <span class="o">=</span> <span class="n">OmegaConf</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;sample_rate&quot;</span><span class="p">:</span> <span class="mi">16000</span><span class="p">,</span>
+                <span class="s2">&quot;num_workers&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>  <span class="c1"># Use 0 to avoid multiprocessing issues in Docker</span>
+                <span class="s2">&quot;batch_size&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>  <span class="c1"># Use batch size of 1 for stability</span>
+                <span class="s2">&quot;diarizer&quot;</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="s2">&quot;manifest_filepath&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                    <span class="s2">&quot;out_dir&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                    <span class="s2">&quot;oracle_vad&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                    <span class="s2">&quot;collar&quot;</span><span class="p">:</span> <span class="mf">0.25</span><span class="p">,</span>
+                    <span class="s2">&quot;ignore_overlap&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+                    <span class="s2">&quot;vad&quot;</span><span class="p">:</span> <span class="p">{</span>
+                        <span class="s2">&quot;model_path&quot;</span><span class="p">:</span> <span class="s2">&quot;vad_multilingual_marblenet&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;parameters&quot;</span><span class="p">:</span> <span class="p">{</span>
+                            <span class="s2">&quot;onset&quot;</span><span class="p">:</span> <span class="mf">0.8</span><span class="p">,</span>
+                            <span class="s2">&quot;offset&quot;</span><span class="p">:</span> <span class="mf">0.6</span><span class="p">,</span>
+                            <span class="s2">&quot;pad_onset&quot;</span><span class="p">:</span> <span class="mf">0.05</span><span class="p">,</span>
+                            <span class="s2">&quot;pad_offset&quot;</span><span class="p">:</span> <span class="o">-</span><span class="mf">0.05</span><span class="p">,</span>
+                            <span class="s2">&quot;min_duration_on&quot;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span>
+                            <span class="s2">&quot;min_duration_off&quot;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span>
+                        <span class="p">},</span>
+                    <span class="p">},</span>
+                    <span class="s2">&quot;speaker_embeddings&quot;</span><span class="p">:</span> <span class="p">{</span>
+                        <span class="s2">&quot;model_path&quot;</span><span class="p">:</span> <span class="s2">&quot;titanet_large&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;parameters&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;window_length_in_sec&quot;</span><span class="p">:</span> <span class="mf">1.5</span><span class="p">,</span> <span class="s2">&quot;shift_length_in_sec&quot;</span><span class="p">:</span> <span class="mf">0.75</span><span class="p">,</span> <span class="s2">&quot;multiscale_weights&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">],</span> <span class="s2">&quot;save_embeddings&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">},</span>
+                    <span class="p">},</span>
+                    <span class="s2">&quot;clustering&quot;</span><span class="p">:</span> <span class="p">{</span>
+                        <span class="s2">&quot;parameters&quot;</span><span class="p">:</span> <span class="p">{</span>
+                            <span class="s2">&quot;oracle_num_speakers&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                            <span class="s2">&quot;max_num_speakers&quot;</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span>
+                            <span class="s2">&quot;enhanced_count_thres&quot;</span><span class="p">:</span> <span class="mi">80</span><span class="p">,</span>
+                            <span class="s2">&quot;max_rp_threshold&quot;</span><span class="p">:</span> <span class="mf">0.25</span><span class="p">,</span>
+                            <span class="s2">&quot;sparse_search_volume&quot;</span><span class="p">:</span> <span class="mi">30</span><span class="p">,</span>
+                            <span class="s2">&quot;maj_vote_spk_count&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                        <span class="p">}</span>
+                    <span class="p">},</span>
+                <span class="p">},</span>
+            <span class="p">}</span>
+        <span class="p">)</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Creating ClusteringDiarizer with simplified config...&quot;</span><span class="p">)</span>
+        <span class="n">_diarizer_model</span> <span class="o">=</span> <span class="n">nemo_asr</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">ClusteringDiarizer</span><span class="p">(</span><span class="n">cfg</span><span class="o">=</span><span class="n">simple_config</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Simplified NeMo diarization model loaded successfully&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_diarizer_model</span>
+
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to load simplified diarizer: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error details: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">raise</span></div>
+
+
+
+<div class="viewcode-block" id="diarize_audio">
+<a class="viewcode-back" href="../../_autosummary/backend_microservice.diarization.html#backend_microservice.diarization.diarize_audio">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">diarize_audio</span><span class="p">(</span><span class="n">audio_data</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">bytes</span><span class="p">,</span> <span class="n">BinaryIO</span><span class="p">],</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">num_speakers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">return_word_timestamps</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Perform real speaker diarization on audio using NVIDIA&#39;s NeMo models.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        audio_data: Audio file content.</span>
+<span class="sd">        filename: Name of the audio file.</span>
+<span class="sd">        num_speakers: Number of speakers (if known). If None, auto-detect.</span>
+<span class="sd">        return_word_timestamps: Whether to include word-level timestamps.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Dict containing diarization results with speaker labels and segments.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">_diarizer_model</span>
+
+    <span class="c1"># Load model if not already loaded</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_diarizer_loaded</span><span class="p">():</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Loading diarization model for the first time&quot;</span><span class="p">)</span>
+        <span class="n">_diarizer_model</span> <span class="o">=</span> <span class="n">load_diarizer</span><span class="p">()</span>
+
+    <span class="c1"># Create temporary directory for processing</span>
+    <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">TemporaryDirectory</span><span class="p">()</span> <span class="k">as</span> <span class="n">temp_dir</span><span class="p">:</span>
+        <span class="c1"># Save audio to temporary file</span>
+        <span class="n">audio_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">temp_dir</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">audio_data</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">):</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">audio_path</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">audio_data</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">audio_path</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">audio_data</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+
+        <span class="c1"># Create manifest file for NeMo (newline-delimited JSON format)</span>
+        <span class="n">manifest_data</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;audio_filepath&quot;</span><span class="p">:</span> <span class="n">audio_path</span><span class="p">,</span>
+            <span class="s2">&quot;offset&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s2">&quot;duration&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="s2">&quot;infer&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="s2">&quot;-&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;num_speakers&quot;</span><span class="p">:</span> <span class="n">num_speakers</span><span class="p">,</span>
+            <span class="s2">&quot;rttm_filepath&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;uem_filepath&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="p">}</span>
+
+        <span class="n">manifest_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">temp_dir</span><span class="p">,</span> <span class="s2">&quot;input_manifest.json&quot;</span><span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">manifest_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">manifest_data</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>  <span class="c1"># NeMo expects newline-delimited JSON</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Starting speaker diarization for: </span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+            <span class="c1"># Update model configuration for this specific inference</span>
+            <span class="n">_diarizer_model</span><span class="o">.</span><span class="n">_diarizer_params</span><span class="o">.</span><span class="n">manifest_filepath</span> <span class="o">=</span> <span class="n">manifest_path</span>
+            <span class="n">_diarizer_model</span><span class="o">.</span><span class="n">_diarizer_params</span><span class="o">.</span><span class="n">out_dir</span> <span class="o">=</span> <span class="n">temp_dir</span>
+
+            <span class="c1"># Set oracle num speakers if provided</span>
+            <span class="k">if</span> <span class="n">num_speakers</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Using oracle number of speakers: </span><span class="si">{</span><span class="n">num_speakers</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">_diarizer_model</span><span class="o">.</span><span class="n">_cluster_params</span><span class="o">.</span><span class="n">oracle_num_speakers</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="c1"># Update the manifest with num_speakers info</span>
+                <span class="n">manifest_data</span><span class="p">[</span><span class="s2">&quot;num_speakers&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">num_speakers</span>
+                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">manifest_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                    <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">manifest_data</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Auto-detecting number of speakers&quot;</span><span class="p">)</span>
+                <span class="n">_diarizer_model</span><span class="o">.</span><span class="n">_cluster_params</span><span class="o">.</span><span class="n">oracle_num_speakers</span> <span class="o">=</span> <span class="kc">False</span>
+
+            <span class="c1"># Run the actual diarization</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Running NeMo diarization...&quot;</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">_diarizer_model</span><span class="o">.</span><span class="n">diarize</span><span class="p">()</span>
+            <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="k">if</span> <span class="s2">&quot;silence&quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+                    <span class="c1"># Handle case where audio contains only silence</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Audio file contains only silence: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="n">end_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+                    <span class="n">processing_time</span> <span class="o">=</span> <span class="n">end_time</span> <span class="o">-</span> <span class="n">start_time</span>
+
+                    <span class="c1"># Return empty result for silence-only audio</span>
+                    <span class="n">result</span> <span class="o">=</span> <span class="p">{</span>
+                        <span class="s2">&quot;speakers&quot;</span><span class="p">:</span> <span class="p">{},</span>
+                        <span class="s2">&quot;num_speakers_detected&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                        <span class="s2">&quot;processing_time_sec&quot;</span><span class="p">:</span> <span class="n">processing_time</span><span class="p">,</span>
+                        <span class="s2">&quot;segments&quot;</span><span class="p">:</span> <span class="p">[],</span>
+                        <span class="s2">&quot;model_info&quot;</span><span class="p">:</span> <span class="s2">&quot;Real NeMo ClusteringDiarizer with TitaNet + MarbleNet VAD&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;note&quot;</span><span class="p">:</span> <span class="s2">&quot;No speech detected in audio file (silence only)&quot;</span><span class="p">,</span>
+                    <span class="p">}</span>
+                    <span class="k">return</span> <span class="n">result</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># Re-raise other ValueError exceptions</span>
+                    <span class="k">raise</span>
+
+            <span class="n">end_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+            <span class="n">processing_time</span> <span class="o">=</span> <span class="n">end_time</span> <span class="o">-</span> <span class="n">start_time</span>
+
+            <span class="c1"># Read RTTM output file</span>
+            <span class="n">rttm_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">temp_dir</span><span class="p">,</span> <span class="s2">&quot;pred_rttms&quot;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">rttm_dir</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;No RTTM output directory found&quot;</span><span class="p">)</span>
+
+            <span class="n">rttm_files</span> <span class="o">=</span> <span class="p">[</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">rttm_dir</span><span class="p">)</span> <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.rttm&quot;</span><span class="p">)]</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">rttm_files</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;No RTTM output file generated&quot;</span><span class="p">)</span>
+
+            <span class="n">rttm_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">rttm_dir</span><span class="p">,</span> <span class="n">rttm_files</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+            <span class="c1"># Debug: Log RTTM file contents</span>
+            <span class="c1"># logger.info(f&quot;Reading RTTM file: {rttm_file}&quot;)</span>
+            <span class="c1"># try:</span>
+            <span class="c1">#     with open(rttm_file, &quot;r&quot;) as f:</span>
+            <span class="c1">#         rttm_content = f.read()</span>
+            <span class="c1">#         # logger.info(f&quot;RTTM file contents:\n{rttm_content}&quot;)</span>
+            <span class="c1"># except Exception as debug_e:</span>
+            <span class="c1">#     logger.warning(f&quot;Could not read RTTM for debugging: {debug_e}&quot;)</span>
+
+            <span class="n">speaker_segments</span> <span class="o">=</span> <span class="n">parse_rttm_file</span><span class="p">(</span><span class="n">rttm_file</span><span class="p">)</span>
+
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Real diarization completed in </span><span class="si">{</span><span class="n">processing_time</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> seconds&quot;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">speaker_segments</span><span class="p">:</span>
+                <span class="n">unique_speakers</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">seg</span><span class="p">[</span><span class="s2">&quot;speaker&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">seg</span> <span class="ow">in</span> <span class="n">speaker_segments</span><span class="p">))</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Detected </span><span class="si">{</span><span class="n">unique_speakers</span><span class="si">}</span><span class="s2"> speakers with </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">speaker_segments</span><span class="p">)</span><span class="si">}</span><span class="s2"> total segments&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;No speaker segments found in RTTM output&quot;</span><span class="p">)</span>
+                <span class="n">unique_speakers</span> <span class="o">=</span> <span class="mi">0</span>
+
+            <span class="c1"># Format results</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;speakers&quot;</span><span class="p">:</span> <span class="n">format_speaker_segments</span><span class="p">(</span><span class="n">speaker_segments</span><span class="p">),</span>
+                <span class="s2">&quot;num_speakers_detected&quot;</span><span class="p">:</span> <span class="n">unique_speakers</span><span class="p">,</span>
+                <span class="s2">&quot;processing_time_sec&quot;</span><span class="p">:</span> <span class="n">processing_time</span><span class="p">,</span>
+                <span class="s2">&quot;segments&quot;</span><span class="p">:</span> <span class="n">speaker_segments</span><span class="p">,</span>
+                <span class="s2">&quot;model_info&quot;</span><span class="p">:</span> <span class="s2">&quot;Real NeMo ClusteringDiarizer with TitaNet + MarbleNet VAD&quot;</span><span class="p">,</span>
+            <span class="p">}</span>
+
+            <span class="k">return</span> <span class="n">result</span>
+
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Real diarization failed: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span></div>
+
+
+
+<div class="viewcode-block" id="parse_rttm_file">
+<a class="viewcode-back" href="../../_autosummary/backend_microservice.diarization.html#backend_microservice.diarization.parse_rttm_file">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">parse_rttm_file</span><span class="p">(</span><span class="n">rttm_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Parse RTTM file and extract speaker segments.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        rttm_path: Path to RTTM file.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        List of speaker segments with timing and speaker info.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">segments</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">rttm_path</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">line_num</span><span class="p">,</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">line</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;#&quot;</span><span class="p">):</span>
+                    <span class="n">parts</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">8</span> <span class="ow">and</span> <span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;SPEAKER&quot;</span><span class="p">:</span>
+                        <span class="k">try</span><span class="p">:</span>
+                            <span class="c1"># RTTM format: SPEAKER &lt;file&gt; 1 &lt;start&gt; &lt;duration&gt; &lt;U&gt; &lt;U&gt; &lt;speaker&gt; &lt;conf&gt; &lt;slat&gt;</span>
+                            <span class="c1"># The filename can have spaces, so we need to find the numeric fields carefully</span>
+
+                            <span class="c1"># Standard RTTM has these fields in order after SPEAKER:</span>
+                            <span class="c1"># filename, channel, start_time, duration, unk1, unk2, speaker_id, confidence, unk3</span>
+
+                            <span class="c1"># Find positions of numeric fields by looking for the pattern:</span>
+                            <span class="c1"># ... 1 &lt;float&gt; &lt;float&gt; &lt;NA&gt; &lt;NA&gt; speaker_X &lt;NA&gt; &lt;NA&gt;</span>
+
+                            <span class="c1"># Look for channel &quot;1&quot; first, then the two floats after it</span>
+                            <span class="n">channel_idx</span> <span class="o">=</span> <span class="kc">None</span>
+                            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">part</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="mi">1</span><span class="p">):</span>  <span class="c1"># Skip &quot;SPEAKER&quot;</span>
+                                <span class="k">if</span> <span class="n">part</span> <span class="o">==</span> <span class="s2">&quot;1&quot;</span><span class="p">:</span>
+                                    <span class="n">channel_idx</span> <span class="o">=</span> <span class="n">i</span>
+                                    <span class="k">break</span>
+
+                            <span class="k">if</span> <span class="n">channel_idx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Could not find channel field in RTTM line: </span><span class="si">{</span><span class="n">line</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                                <span class="k">continue</span>
+
+                            <span class="c1"># After channel, expect: start_time, duration, &lt;NA&gt;, &lt;NA&gt;, speaker_id, &lt;NA&gt;, &lt;NA&gt;</span>
+                            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">channel_idx</span> <span class="o">+</span> <span class="mi">6</span><span class="p">:</span>
+                                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Not enough fields after channel in RTTM line: </span><span class="si">{</span><span class="n">line</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                                <span class="k">continue</span>
+
+                            <span class="n">start_time</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="n">channel_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
+                            <span class="n">duration</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="n">channel_idx</span> <span class="o">+</span> <span class="mi">2</span><span class="p">])</span>
+                            <span class="c1"># parts[channel_idx + 3] should be &lt;NA&gt;</span>
+                            <span class="c1"># parts[channel_idx + 4] should be &lt;NA&gt;</span>
+                            <span class="n">speaker</span> <span class="o">=</span> <span class="n">parts</span><span class="p">[</span><span class="n">channel_idx</span> <span class="o">+</span> <span class="mi">5</span><span class="p">]</span>
+                            <span class="c1"># parts[channel_idx + 6] might be confidence or &lt;NA&gt;</span>
+
+                            <span class="n">end_time</span> <span class="o">=</span> <span class="n">start_time</span> <span class="o">+</span> <span class="n">duration</span>
+                            <span class="n">confidence</span> <span class="o">=</span> <span class="mf">1.0</span>  <span class="c1"># Default confidence since NeMo outputs &lt;NA&gt;</span>
+
+                            <span class="n">segments</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&quot;start&quot;</span><span class="p">:</span> <span class="n">start_time</span><span class="p">,</span> <span class="s2">&quot;end&quot;</span><span class="p">:</span> <span class="n">end_time</span><span class="p">,</span> <span class="s2">&quot;duration&quot;</span><span class="p">:</span> <span class="n">duration</span><span class="p">,</span> <span class="s2">&quot;speaker&quot;</span><span class="p">:</span> <span class="n">speaker</span><span class="p">,</span> <span class="s2">&quot;confidence&quot;</span><span class="p">:</span> <span class="n">confidence</span><span class="p">})</span>
+
+                        <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">IndexError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Skipping malformed RTTM line </span><span class="si">{</span><span class="n">line_num</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Parse error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                            <span class="k">continue</span>
+
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error reading RTTM file </span><span class="si">{</span><span class="n">rttm_path</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">raise</span>
+
+    <span class="c1"># Sort segments by start time</span>
+    <span class="n">segments</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="s2">&quot;start&quot;</span><span class="p">])</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Successfully parsed </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">segments</span><span class="p">)</span><span class="si">}</span><span class="s2"> segments from RTTM file&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">segments</span></div>
+
+
+
+<div class="viewcode-block" id="format_speaker_segments">
+<a class="viewcode-back" href="../../_autosummary/backend_microservice.diarization.html#backend_microservice.diarization.format_speaker_segments">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">format_speaker_segments</span><span class="p">(</span><span class="n">segments</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Format speaker segments grouped by speaker.&quot;&quot;&quot;</span>
+    <span class="n">speakers</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">for</span> <span class="n">segment</span> <span class="ow">in</span> <span class="n">segments</span><span class="p">:</span>
+        <span class="n">speaker</span> <span class="o">=</span> <span class="n">segment</span><span class="p">[</span><span class="s2">&quot;speaker&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">speaker</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">speakers</span><span class="p">:</span>
+            <span class="n">speakers</span><span class="p">[</span><span class="n">speaker</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="n">speakers</span><span class="p">[</span><span class="n">speaker</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="p">{</span><span class="s2">&quot;start&quot;</span><span class="p">:</span> <span class="n">segment</span><span class="p">[</span><span class="s2">&quot;start&quot;</span><span class="p">],</span> <span class="s2">&quot;end&quot;</span><span class="p">:</span> <span class="n">segment</span><span class="p">[</span><span class="s2">&quot;end&quot;</span><span class="p">],</span> <span class="s2">&quot;duration&quot;</span><span class="p">:</span> <span class="n">segment</span><span class="p">[</span><span class="s2">&quot;duration&quot;</span><span class="p">],</span> <span class="s2">&quot;confidence&quot;</span><span class="p">:</span> <span class="n">segment</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;confidence&quot;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)}</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">speakers</span></div>
+
+
+
+<div class="viewcode-block" id="is_diarizer_loaded">
+<a class="viewcode-back" href="../../_autosummary/backend_microservice.diarization.html#backend_microservice.diarization.is_diarizer_loaded">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">is_diarizer_loaded</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Check if the diarization model is already loaded.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">_diarizer_model</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Dean van Aswegen.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
