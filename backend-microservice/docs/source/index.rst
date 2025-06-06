@@ -33,13 +33,22 @@ API Endpoints
 
 **GET /** - Welcome message
 
-**GET /health** - Health check
+**GET /health** - Health check with model status
+
+**GET /gpu-info** - Detailed GPU information
 
 **POST /transcribe** - Transcribe audio file
 
-Parameters:
+**POST /diarize** - Perform speaker diarization
+
+**POST /transcribe_and_diarize** - Combined transcription and speaker diarization
+
+Parameters for transcription endpoints:
 - ``file``: Audio file (.wav or .flac)
 - ``return_timestamps``: Include timestamps (default: true)
+- ``chunk_duration_sec``: Duration for processing chunks
+- ``overlap_duration_sec``: Overlap duration between chunks
+- ``num_speakers``: Number of speakers (for diarization, optional)
 
 Quick Start Development
 -----------
@@ -103,3 +112,10 @@ All modules are automatically documented below:
    :recursive:
 
    backend_microservice
+
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
