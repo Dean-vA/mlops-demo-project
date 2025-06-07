@@ -170,6 +170,15 @@ Plot advancement, information learned, or mysteries revealed.
 ## Transcript Segment:
 {chunk_text}
 
+Charater context:
+- Carl is the Dungeon Master (DM) and is responsible for the overall story and world.
+- Dean plays Thorne Thundersoul a human monk.
+- Jason play Captain Lothaire a tiefling swashbuckler rogue.
+- Stuart plays Kingsley a construct artificer, with flintlock pistols and a chest mounted blunderbuss.
+- Keagan plays Dernick Blackbraid a dwarven ranger.
+- Kyle plays Dumbledope the wizard, a human wizard and alcoholic.
+
+
 ## Summary:"""
 
     return prompt
