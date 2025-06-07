@@ -37,9 +37,20 @@ def train_model(model, tokenizer, dataset, output_dir: str, num_epochs: int = 10
 
     logger.info(f"Training {len(dataset)} samples for {num_epochs} epochs")
 
-    # Start training - autolog will handle everything automatically
+    # Start training
     logger.info("Starting training...")
     training_output = trainer.train()
+
+    # Manually log final training metrics
+    mlflow.log_metrics(
+        {
+            "final_train_loss": training_output.training_loss,
+            "train_runtime": training_output.metrics.get("train_runtime", 0),
+            "train_samples_per_second": training_output.metrics.get("train_samples_per_second", 0),
+            "total_parameters": model_info.get("total_parameters", 0),
+            "trainable_parameters": model_info.get("trainable_parameters", 0),
+        }
+    )
 
     logger.info("Training completed!")
     logger.info(f"Final training loss: {training_output.training_loss:.4f}")
@@ -57,14 +68,14 @@ def train(use_uri: bool, data_path: str, model_path: str, num_epochs: int = 10):
         model_path (str): Path to save the trained model.
         num_epochs (int): Number of training epochs.
     """
-    # Enable MLflow autolog - this handles everything automatically!
+    # Enable MLflow autolog with limited parameters to avoid Azure ML limits
     mlflow.pytorch.autolog(
-        log_models=False,  # Log the model
-        log_datasets=False,  # Log dataset info
+        log_models=False,  # Disable model logging to avoid size issues
+        log_datasets=False,  # Disable dataset logging to reduce parameters
         disable=False,  # Enable autolog
         exclusive=False,  # Allow manual logging too
-        disable_for_unsupported_versions=False,
-        silent=False,  # Show autolog messages
+        disable_for_unsupported_versions=True,  # Skip if version incompatible
+        silent=True,  # Reduce noise from version warnings
     )
 
     # Start MLflow run
@@ -74,6 +85,16 @@ def train(use_uri: bool, data_path: str, model_path: str, num_epochs: int = 10):
         # Check GPU availability
         device = get_device()
         logger.info(f"Using device: {device}")
+
+        # Log only essential parameters to stay under Azure ML 200 parameter limit
+        mlflow.log_params(
+            {
+                "model_name": "meta-llama/Llama-3.2-1B-Instruct",
+                "num_epochs": num_epochs,
+                "data_path": data_path.split("/")[-1] if "/" in data_path else data_path,  # Just filename
+                "device_type": str(device),
+            }
+        )
 
         # Load and prepare data
         if use_uri:

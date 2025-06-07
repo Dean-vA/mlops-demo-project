@@ -255,7 +255,7 @@ def prepare_dataset_from_dataframe(df: pd.DataFrame, tokenizer: AutoTokenizer) -
 
 def setup_training_args(output_dir: str, num_epochs: int = 10) -> TrainingArguments:
     """
-    Configure training arguments.
+    Configure training arguments with minimal parameters to avoid Azure ML limits.
 
     Args:
         output_dir: Directory to save checkpoints
@@ -268,22 +268,25 @@ def setup_training_args(output_dir: str, num_epochs: int = 10) -> TrainingArgume
 
     training_args = TrainingArguments(
         output_dir=output_dir,
-        num_train_epochs=num_epochs,  # More epochs for small dataset
-        per_device_train_batch_size=1,  # Reduced batch size to avoid issues
-        gradient_accumulation_steps=8,  # Maintain effective batch size
-        learning_rate=2e-4,  # Standard LoRA learning rate
+        num_train_epochs=num_epochs,
+        per_device_train_batch_size=1,
+        gradient_accumulation_steps=8,
+        learning_rate=2e-4,
         weight_decay=0.01,
-        logging_steps=1,  # Log every step for small dataset
+        logging_steps=1,
         save_strategy="epoch",
-        save_total_limit=3,
-        warmup_steps=2,  # Small warmup for small dataset
+        save_total_limit=2,  # Reduced to save space
+        warmup_steps=2,
         fp16=False,
         bf16=True,
-        dataloader_num_workers=0,  # Avoid multiprocessing issues
-        dataloader_drop_last=False,  # Don't drop last batch for small dataset
+        dataloader_num_workers=0,
+        dataloader_drop_last=False,
         remove_unused_columns=False,
-        report_to=None,  # Disable wandb/tensorboard
-        push_to_hub=False,  # Don't push to HuggingFace Hub
+        report_to=[],  # IMPORTANT: Empty list disables all integrations including MLflow
+        push_to_hub=False,
+        # Disable MLflow integration at the trainer level
+        disable_tqdm=False,
+        load_best_model_at_end=False,
     )
 
     logger.info("Training arguments configured:")
@@ -292,6 +295,7 @@ def setup_training_args(output_dir: str, num_epochs: int = 10) -> TrainingArgume
     logger.info(f"  - Gradient accumulation: {training_args.gradient_accumulation_steps}")
     logger.info(f"  - Effective batch size: {training_args.per_device_train_batch_size * training_args.gradient_accumulation_steps}")
     logger.info(f"  - Learning rate: {training_args.learning_rate}")
+    logger.info("  - MLflow auto-integration: DISABLED")
 
     return training_args
 
