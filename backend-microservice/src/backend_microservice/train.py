@@ -59,8 +59,8 @@ def train(use_uri: bool, data_path: str, model_path: str, num_epochs: int = 10):
     """
     # Enable MLflow autolog - this handles everything automatically!
     mlflow.pytorch.autolog(
-        log_models=True,  # Log the model
-        log_datasets=True,  # Log dataset info
+        log_models=False,  # Log the model
+        log_datasets=False,  # Log dataset info
         disable=False,  # Enable autolog
         exclusive=False,  # Allow manual logging too
         disable_for_unsupported_versions=False,
