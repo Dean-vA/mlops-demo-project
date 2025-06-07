@@ -7,6 +7,481 @@
     border-bottom: 2px solid #e9ecef;
 }
 
+/* Summary Component Styles */
+.summary-tab-content {
+    padding: 20px;
+    background: rgba(45, 45, 45, 0.95);
+    border-radius: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.summary-header h3 {
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+}
+
+.summary-description {
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 25px;
+    line-height: 1.5;
+}
+
+.summary-controls {
+    margin-bottom: 25px;
+}
+
+.summary-info {
+    margin-top: 15px;
+    padding: 15px;
+    background: rgba(102, 126, 234, 0.1);
+    border-radius: 8px;
+    border: 1px solid rgba(102, 126, 234, 0.3);
+}
+
+.summary-stats {
+    display: flex;
+    gap: 20px;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.summary-stats span {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 4px 12px;
+    border-radius: 15px;
+}
+
+/* Progress Styles */
+.summary-progress {
+    background: rgba(55, 55, 55, 0.95);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(135deg, #28a745, #20c997);
+    transition: width 0.3s ease;
+    border-radius: 4px;
+}
+
+.progress-details {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-style: italic;
+}
+
+/* Summary Result Styles */
+.summary-result {
+    background: rgba(55, 55, 55, 0.95);
+    border-radius: 10px;
+    padding: 25px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.summary-sections {
+    margin-bottom: 25px;
+}
+
+.summary-section-item {
+    margin-bottom: 25px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.summary-section-item:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.summary-section-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #FFE135;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.summary-section-content {
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1.7;
+    font-size: 1rem;
+}
+
+.summary-metadata {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 20px;
+    margin-bottom: 20px;
+}
+
+/* Token Usage Section */
+.token-usage-section {
+    margin-top: 25px;
+    padding: 20px;
+    background: rgba(102, 126, 234, 0.1);
+    border-radius: 10px;
+    border: 1px solid rgba(102, 126, 234, 0.3);
+}
+
+.token-usage-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #FFE135;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.token-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.token-stat-item {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 12px;
+    border-radius: 8px;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.token-stat-item.cost-highlight {
+    background: rgba(255, 193, 7, 0.2);
+    border-color: rgba(255, 193, 7, 0.4);
+}
+
+.token-stat-value {
+    display: block;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #FFE135;
+    margin-bottom: 4px;
+}
+
+.cost-highlight .token-stat-value {
+    color: #FFC107;
+    font-size: 1.3rem;
+}
+
+.token-stat-label {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 500;
+}
+
+/* Efficiency Metrics */
+.efficiency-metrics {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 15px;
+    padding-top: 15px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.efficiency-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.efficiency-label {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 500;
+}
+
+.efficiency-value {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.summary-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+}
+
+.summary-stats-grid .stat-item {
+    background: rgba(102, 126, 234, 0.1);
+    border: 1px solid rgba(102, 126, 234, 0.3);
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.summary-stats-grid .stat-value {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #FFE135;
+    margin-bottom: 4px;
+}
+
+.summary-stats-grid .stat-label {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 500;
+}
+
+.summary-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.summary-actions .btn {
+    flex: 1;
+    min-width: 140px;
+}
+
+/* Summary Error Styles */
+.summary-error {
+    background: rgba(220, 53, 69, 0.1);
+    border: 1px solid rgba(220, 53, 69, 0.3);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+}
+
+.summary-error .error-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 15px;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 1rem;
+}
+
+.summary-error .error-icon {
+    font-size: 1.3rem;
+}
+
+/* Mobile Responsiveness for Summary */
+@media (max-width: 768px) {
+    .results-tabs {
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .results-tabs .tab-button {
+        margin-right: 0;
+        text-align: center;
+    }
+
+    .summary-tab-content {
+        padding: 15px;
+    }
+
+    .summary-stats {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .summary-stats-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    .token-stats-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    .efficiency-metrics {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .summary-actions {
+        flex-direction: column;
+    }
+
+    .summary-actions .btn {
+        min-width: auto;
+    }
+}
+
+@media (max-width: 480px) {
+    .summary-stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .token-stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .progress-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+
+    .token-usage-title {
+        font-size: 1rem;
+    }
+
+    .token-stat-value {
+        font-size: 1.1rem;
+    }
+
+    .cost-highlight .token-stat-value {
+        font-size: 1.2rem;
+    }
+}
+
+/* Content fade effect */
+.collapsible-section:not(.collapsed) {
+    animation: none;
+}
+
+.collapsible-section.collapsed {
+    opacity: 0.9;
+}
+
+/* Improved spacing when collapsed */
+.collapsible-section.collapsed + .collapsible-section,
+.collapsible-section.collapsed + .result-section,
+.result-section + .collapsible-section.collapsed {
+    margin-top: 15px;
+}
+
+/* Summary Component Styles */
+.summary-tab-content {
+    padding: 20px;
+    background: rgba(45, 45, 45, 0.95);
+    border-radius: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.summary-header h3 {
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+}
+
+.summary-description {
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 25px;
+    line-height: 1.5;
+}
+
+.summary-controls {
+    margin-bottom: 25px;
+}
+
+.summary-info {
+    margin-top: 15px;
+    padding: 15px;
+    background: rgba(102, 126, 234, 0.1);
+    border-radius: 8px;
+    border: 1px solid rgba(102, 126, 234, 0.3);
+}
+
+.summary-stats {
+    display: flex;
+    gap: 20px;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.summary-stats span {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 4px 12px;
+    border-radius: 15px;
+}
+
+/* Progress Styles */
+.summary-progress {
+    background: rgba(55, 55, 55, 0.95);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    overflow/* Recording Tabs */
+.recording-tabs {
+    display: flex;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #e9ecef;
+}
+
+/* Results Tabs */
+.results-tabs {
+    display: flex;
+    margin-bottom: 25px;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 10px 10px 0 0;
+    padding: 5px;
+}
+
+.results-tabs .tab-button {
+    background: none;
+    border: none;
+    padding: 12px 20px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    margin-right: 5px;
+}
+
+.results-tabs .tab-button.active {
+    color: white;
+    background: rgba(102, 126, 234, 0.8);
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.results-tabs .tab-button:hover:not(.active) {
+    color: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.1);
+}
+
 .tab-button {
     background: none;
     border: none;

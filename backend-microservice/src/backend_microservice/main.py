@@ -2,14 +2,16 @@ import gc
 import logging
 import os
 import sys
-from typing import Any, Optional
+from typing import Any, Dict, List, Optional
 
 import psutil
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
 from .diarization import diarize_audio, is_diarizer_loaded, load_diarizer
 from .gpu_utils import get_gpu_info
+from .summarization import generate_session_summary, is_summarization_available
 from .transcription import (
     add_speaker_tags_to_segments,
     extract_data_from_transcription_result,
@@ -33,6 +35,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+class SummarizationRequest(BaseModel):
+    segments: List[Dict]
+    speaker_names: Optional[Dict[str, str]] = None
 
 
 def log_memory_usage(stage: str, logger):
@@ -297,6 +304,42 @@ async def transcribe_and_diarize(
     except Exception as e:
         logger.error(f"Combined transcription and diarization error: {str(e)}")
         logger.exception("Full traceback:")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/summarize")
+async def summarize_session(request: SummarizationRequest):
+    """Generate a D&D session summary from transcription segments with progress updates.
+
+    Args:
+        request: SummarizationRequest containing segments and optional speaker names
+
+    Returns:
+        dict: Generated summary with sections and metadata
+    """
+    try:
+        # Check if summarization is available
+        if not is_summarization_available():
+            raise HTTPException(status_code=503, detail="Summarization not available. OpenAI API key not configured.")
+
+        # Validate input
+        if not request.segments:
+            raise HTTPException(status_code=400, detail="No segments provided for summarization")
+
+        logger.info(f"Generating summary for {len(request.segments)} segments")
+
+        # Generate the summary (this will handle chunking internally)
+        summary_result = await generate_session_summary(
+            segments=request.segments, speaker_names=request.speaker_names, progress_callback=None  # We'll add SSE support later if needed
+        )
+
+        return summary_result
+
+    except ValueError as e:
+        logger.error(f"Summarization validation error: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Summarization error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

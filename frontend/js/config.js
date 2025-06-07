@@ -7,7 +7,8 @@ window.AppConfig = {
             GPU_INFO: '/gpu-info',
             TRANSCRIBE: '/transcribe',
             DIARIZE: '/diarize',
-            TRANSCRIBE_AND_DIARIZE: '/transcribe_and_diarize'
+            TRANSCRIBE_AND_DIARIZE: '/transcribe_and_diarize',
+            SUMMARIZE: '/summarize'
         },
         TIMEOUT: 600000 // 10 minutes
     },

@@ -18,62 +18,81 @@ class ResultsComponent {
     render() {
         this.container.innerHTML = `
             <div class="results" id="results" style="display: none;">
-                <!-- Main Transcription -->
-                <div class="result-section collapsible-section" data-section="transcription">
-                    <h3 class="collapsible-header" data-target="transcription">
-                        <span class="collapse-indicator">▼</span>
-                        📝 Transcription
-                    </h3>
-                    <div class="collapsible-content" data-content="transcription">
-                        <div class="transcription-text" id="transcription-text"></div>
-                        <button class="btn btn-secondary" id="copy-transcription-btn" style="margin-top: 10px;">
-                            📋 Copy Text
-                        </button>
+                <!-- Results Tabs -->
+                <div class="results-tabs" id="results-tabs">
+                    <button class="tab-button active" data-tab="transcription">📝 Transcription</button>
+                    <button class="tab-button" data-tab="analysis" id="analysis-tab" style="display: none;">📊 Analysis</button>
+                    <button class="tab-button" data-tab="summary" id="summary-tab" style="display: none;">🐉 Summary</button>
+                </div>
+
+                <!-- Transcription Tab -->
+                <div class="tab-content active" data-tab-content="transcription">
+                    <!-- Main Transcription -->
+                    <div class="result-section collapsible-section" data-section="transcription">
+                        <h3 class="collapsible-header" data-target="transcription">
+                            <span class="collapse-indicator">▼</span>
+                            📝 Transcription
+                        </h3>
+                        <div class="collapsible-content" data-content="transcription">
+                            <div class="transcription-text" id="transcription-text"></div>
+                            <button class="btn btn-secondary" id="copy-transcription-btn" style="margin-top: 10px;">
+                                📋 Copy Text
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Statistics -->
+                    <div class="stats" id="stats">
+                        <div class="stat-item">
+                            <div class="stat-value" id="processing-time">-</div>
+                            <div class="stat-label">Processing Time (s)</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="word-count">-</div>
+                            <div class="stat-label">Words</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="segment-count">-</div>
+                            <div class="stat-label">Segments</div>
+                        </div>
+                        <div class="stat-item" id="speaker-count-stat" style="display: none;">
+                            <div class="stat-value" id="speaker-count">-</div>
+                            <div class="stat-label">Speakers</div>
+                        </div>
+                    </div>
+
+                    <!-- Segments -->
+                    <div class="result-section" id="segments-section" style="display: none;">
+                        <h3>📑 Segments <span class="subtitle">Click to play audio</span></h3>
+                        <div class="segments" id="segments"></div>
+                    </div>
+
+                    <!-- Word Timestamps -->
+                    <div class="result-section" id="timestamps-section" style="display: none;">
+                        <h3>⏱️ Word Timestamps</h3>
+                        <div class="timestamps" id="timestamps"></div>
                     </div>
                 </div>
 
-                <!-- Statistics -->
-                <div class="stats" id="stats">
-                    <div class="stat-item">
-                        <div class="stat-value" id="processing-time">-</div>
-                        <div class="stat-label">Processing Time (s)</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-value" id="word-count">-</div>
-                        <div class="stat-label">Words</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-value" id="segment-count">-</div>
-                        <div class="stat-label">Segments</div>
-                    </div>
-                    <div class="stat-item" id="speaker-count-stat" style="display: none;">
-                        <div class="stat-value" id="speaker-count">-</div>
-                        <div class="stat-label">Speakers</div>
+                <!-- Analysis Tab -->
+                <div class="tab-content" data-tab-content="analysis">
+                    <!-- Speaker Summary -->
+                    <div class="result-section collapsible-section" id="speaker-summary-section" data-section="speaker-summary" style="display: none;">
+                        <h3 class="collapsible-header" data-target="speaker-summary">
+                            <span class="collapse-indicator">▼</span>
+                            👥 Speaker Summary
+                            <span class="subtitle">Click names to edit</span>
+                        </h3>
+                        <div class="collapsible-content" data-content="speaker-summary">
+                            <div class="speaker-summary" id="speaker-summary"></div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Speaker Summary -->
-                <div class="result-section collapsible-section" id="speaker-summary-section" data-section="speaker-summary" style="display: none;">
-                    <h3 class="collapsible-header" data-target="speaker-summary">
-                        <span class="collapse-indicator">▼</span>
-                        👥 Speaker Summary
-                        <span class="subtitle">Click names to edit</span>
-                    </h3>
-                    <div class="collapsible-content" data-content="speaker-summary">
-                        <div class="speaker-summary" id="speaker-summary"></div>
-                    </div>
-                </div>
-
-                <!-- Segments -->
-                <div class="result-section" id="segments-section" style="display: none;">
-                    <h3>📑 Segments <span class="subtitle">Click to play audio</span></h3>
-                    <div class="segments" id="segments"></div>
-                </div>
-
-                <!-- Word Timestamps -->
-                <div class="result-section" id="timestamps-section" style="display: none;">
-                    <h3>⏱️ Word Timestamps</h3>
-                    <div class="timestamps" id="timestamps"></div>
+                <!-- Summary Tab -->
+                <div class="tab-content" data-tab-content="summary">
+                    <!-- Summary component will be injected here -->
+                    <div id="summary-component"></div>
                 </div>
             </div>
         `;

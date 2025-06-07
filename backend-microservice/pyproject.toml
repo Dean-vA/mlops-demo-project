@@ -25,6 +25,8 @@ scikit-learn = "^1.5.0"  # For clustering algorithms
 scipy = "^1.14.0"  # For signal processing
 librosa = "^0.10.0"  # For audio processing utilities
 pyannote-metrics = "^3.2.0"  # For diarization evaluation metrics
+openai = "^1.84.0"
+python-dotenv = "^1.1.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "^25.1.0"
