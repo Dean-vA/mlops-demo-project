@@ -1,4 +1,4 @@
-// Clean Results Component - Logic Only, No Inline Styling
+// Enhanced Results Component with Collapsible Sections
 class ResultsComponent {
     constructor(state, services) {
         this.state = state;
@@ -6,23 +6,30 @@ class ResultsComponent {
         this.container = document.getElementById('results-component');
         this.currentlyEditingLabel = null;
         this.currentData = null;
+        this.collapsedSections = new Set(); // Track collapsed sections
     }
 
     async init() {
         this.render();
         this.setupEventListeners();
+        // Don't load collapsed state here - will be loaded when showing results
     }
 
     render() {
         this.container.innerHTML = `
             <div class="results" id="results" style="display: none;">
                 <!-- Main Transcription -->
-                <div class="result-section">
-                    <h3>📝 Transcription</h3>
-                    <div class="transcription-text" id="transcription-text"></div>
-                    <button class="btn btn-secondary" id="copy-transcription-btn" style="margin-top: 10px;">
-                        📋 Copy Text
-                    </button>
+                <div class="result-section collapsible-section" data-section="transcription">
+                    <h3 class="collapsible-header" data-target="transcription">
+                        <span class="collapse-indicator">▼</span>
+                        📝 Transcription
+                    </h3>
+                    <div class="collapsible-content" data-content="transcription">
+                        <div class="transcription-text" id="transcription-text"></div>
+                        <button class="btn btn-secondary" id="copy-transcription-btn" style="margin-top: 10px;">
+                            📋 Copy Text
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Statistics -->
@@ -46,9 +53,15 @@ class ResultsComponent {
                 </div>
 
                 <!-- Speaker Summary -->
-                <div class="result-section" id="speaker-summary-section" style="display: none;">
-                    <h3>👥 Speaker Summary <span class="subtitle">Click names to edit</span></h3>
-                    <div class="speaker-summary" id="speaker-summary"></div>
+                <div class="result-section collapsible-section" id="speaker-summary-section" data-section="speaker-summary" style="display: none;">
+                    <h3 class="collapsible-header" data-target="speaker-summary">
+                        <span class="collapse-indicator">▼</span>
+                        👥 Speaker Summary
+                        <span class="subtitle">Click names to edit</span>
+                    </h3>
+                    <div class="collapsible-content" data-content="speaker-summary">
+                        <div class="speaker-summary" id="speaker-summary"></div>
+                    </div>
                 </div>
 
                 <!-- Segments -->
@@ -87,7 +100,11 @@ class ResultsComponent {
             segmentsSection: this.container.querySelector('#segments-section'),
             segments: this.container.querySelector('#segments'),
             timestampsSection: this.container.querySelector('#timestamps-section'),
-            timestamps: this.container.querySelector('#timestamps')
+            timestamps: this.container.querySelector('#timestamps'),
+
+            // Collapsible elements
+            collapsibleHeaders: this.container.querySelectorAll('.collapsible-header'),
+            collapsibleSections: this.container.querySelectorAll('.collapsible-section')
         };
     }
 
@@ -95,6 +112,14 @@ class ResultsComponent {
         // Copy transcription button
         this.elements.copyTranscriptionBtn.addEventListener('click', () => {
             this.copyTranscription();
+        });
+
+        // Collapsible section headers
+        this.elements.collapsibleHeaders.forEach(header => {
+            header.addEventListener('click', () => {
+                const target = header.dataset.target;
+                this.toggleSection(target);
+            });
         });
 
         // Listen for settings changes
@@ -114,6 +139,74 @@ class ResultsComponent {
         // Listen for speaker name changes
         document.addEventListener('speakerNameChanged', (event) => {
             this.updateSpeakerLabels(event.detail.speakerId, event.detail.newName);
+        });
+    }
+
+    // Collapsible functionality
+    toggleSection(sectionName) {
+        const section = this.container.querySelector(`[data-section="${sectionName}"]`);
+        const content = this.container.querySelector(`[data-content="${sectionName}"]`);
+        const indicator = this.container.querySelector(`[data-target="${sectionName}"] .collapse-indicator`);
+
+        if (!section || !content || !indicator) return;
+
+        const isCollapsed = this.collapsedSections.has(sectionName);
+
+        if (isCollapsed) {
+            // Expand
+            this.collapsedSections.delete(sectionName);
+            section.classList.remove('collapsed');
+            content.style.maxHeight = content.scrollHeight + 'px';
+            indicator.textContent = '▼';
+
+            // Reset max-height after transition
+            setTimeout(() => {
+                if (!this.collapsedSections.has(sectionName)) {
+                    content.style.maxHeight = 'none';
+                }
+            }, 300);
+        } else {
+            // Collapse
+            this.collapsedSections.add(sectionName);
+            section.classList.add('collapsed');
+            content.style.maxHeight = content.scrollHeight + 'px';
+
+            // Force reflow then collapse
+            requestAnimationFrame(() => {
+                content.style.maxHeight = '0px';
+            });
+            indicator.textContent = '▶';
+        }
+
+        this.saveCollapsedState();
+    }
+
+    saveCollapsedState() {
+        try {
+            UIUtils.saveToLocalStorage('parakeet-collapsed-sections', Array.from(this.collapsedSections));
+        } catch (error) {
+            console.warn('Failed to save collapsed state:', error);
+        }
+    }
+
+    loadCollapsedState() {
+        const saved = UIUtils.loadFromLocalStorage('parakeet-collapsed-sections', []);
+
+        // Ensure saved data is an array before creating Set
+        const savedArray = Array.isArray(saved) ? saved : [];
+        this.collapsedSections = new Set(savedArray);
+
+        // Apply collapsed state to existing sections
+        this.collapsedSections.forEach(sectionName => {
+            const section = this.container.querySelector(`[data-section="${sectionName}"]`);
+            const content = this.container.querySelector(`[data-content="${sectionName}"]`);
+            const indicator = this.container.querySelector(`[data-target="${sectionName}"] .collapse-indicator`);
+
+            if (section && content && indicator) {
+                section.classList.add('collapsed');
+                content.style.maxHeight = '0px';
+                indicator.textContent = '▶';
+            }
         });
     }
 
@@ -302,6 +395,18 @@ class ResultsComponent {
             const speakerDiv = document.createElement('div');
             speakerDiv.className = 'speaker-item';
 
+        Object.entries(diarizationData.speakers).forEach(([speakerId, segments]) => {
+            const totalDuration = segments.reduce((sum, seg) => sum + seg.duration, 0);
+
+            // Calculate percentage more accurately
+            const allSegmentsDuration = Object.values(diarizationData.speakers)
+                .flat()
+                .reduce((sum, seg) => sum + seg.duration, 0);
+            const percentage = allSegmentsDuration > 0 ? (totalDuration / allSegmentsDuration * 100) : 0;
+
+            const speakerDiv = document.createElement('div');
+            speakerDiv.className = 'speaker-item';
+
             speakerDiv.innerHTML = `
                 <div class="speaker-info">
                     <span class="speaker-label ${UIUtils.getSpeakerClass(speakerId)}" data-speaker="${speakerId}">
@@ -466,6 +571,9 @@ class ResultsComponent {
         if (settings) {
             this.updateVisibility(settings);
         }
+
+        // Apply saved collapsed states
+        this.loadCollapsedState();
     }
 
     hide() {

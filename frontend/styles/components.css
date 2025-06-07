@@ -412,8 +412,8 @@ input:checked + .slider:before {
 
 /* Light Headers on Dark Background */
 .result-section h3 {
-    color: rgba(255, 255, 255, 0.95);
-    margin-bottom: 16px;
+    color: #cfcfcf;
+    margin-bottom: 15px;
     font-size: 1.3rem;
     font-weight: 600;
     display: flex;
@@ -703,10 +703,8 @@ input:checked + .slider:before {
 
 .segment-text {
     font-size: 1rem;
-    line-height: 1.6;
-    color: rgba(255, 255, 255, 0.9) !important; /* Light text */
-    font-weight: 400;
-    margin: 0;
+    line-height: 1.5;
+    color: #dfdfdf;
 }
 
 /* Timestamps - Light Background */
@@ -956,447 +954,331 @@ input:checked + .slider:before {
     transform: translateY(0);
 }
 
-/* Enhanced Button Styling */
-.btn {
-    border: none;
-    border-radius: 8px;
-    padding: 10px 20px;
-    font-size: 0.95rem;
-    font-weight: 600;
-    cursor: pointer;
+/* Collapsible Section Structure */
+.collapsible-section {
     transition: all 0.3s ease;
-    text-decoration: none;
-    display: inline-flex;
+}
+
+.collapsible-header {
+    cursor: pointer;
+    display: flex;
     align-items: center;
-    gap: 8px;
-    justify-content: center;
-    min-height: 40px;
-    line-height: 1.2;
-}
-
-.btn:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-}
-
-.btn-secondary {
-    background: #6c757d;
-    color: white;
-}
-
-.btn-secondary:hover {
-    background: #5a6268;
-}
-
-/* Custom Scrollbars */
-.segments::-webkit-scrollbar,
-.timestamps::-webkit-scrollbar {
-    width: 8px;
-}
-
-.segments::-webkit-scrollbar-track,
-.timestamps::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 4px;
-}
-
-.segments::-webkit-scrollbar-thumb,
-.timestamps::-webkit-scrollbar-thumb {
-    background: #c1c1c1;
-    border-radius: 4px;
-}
-
-.segments::-webkit-scrollbar-thumb:hover,
-.timestamps::-webkit-scrollbar-thumb:hover {
-    background: #a8a8a8;
-}
-
-/* Accessibility Improvements */
-.segment-item:focus {
-    outline: 2px solid #667eea;
-    outline-offset: 2px;
-}
-
-.play-button:focus {
-    outline: 2px solid #28a745;
-    outline-offset: 2px;
-}
-
-/* Loading states */
-.segment-item.loading {
-    opacity: 0.7;
-    pointer-events: none;
+    gap: 12px;
+    user-select: none;
+    transition: all 0.3s ease;
+    margin-bottom: 16px !important;
     position: relative;
 }
 
-.segment-item.loading::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 20px;
-    height: 20px;
-    margin: -10px 0 0 -10px;
-    border: 2px solid #f3f3f3;
-    border-top: 2px solid #667eea;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
+.collapsible-header:hover {
+    opacity: 0.8;
+    transform: translateX(2px);
 }
 
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+.collapsible-header:active {
+    transform: translateX(0px);
 }
 
-/* Empty states */
-.segments:empty::after,
-.timestamps:empty::after {
-    content: 'No data available';
-    display: block;
+/* Collapse Indicator */
+.collapse-indicator {
+    font-size: 0.9em;
+    color: rgba(255, 255, 255, 0.7);
+    transition: all 0.3s ease;
+    font-weight: bold;
+    display: inline-block;
+    width: 16px;
     text-align: center;
-    color: #6c757d;
-    font-style: italic;
-    padding: 40px 20px;
 }
 
-/* Mobile Responsiveness */
+.collapsible-header:hover .collapse-indicator {
+    color: rgba(255, 255, 255, 0.9);
+    transform: scale(1.1);
+}
+
+/* Collapsible Content */
+.collapsible-content {
+    overflow: hidden;
+    transition: max-height 0.3s ease-in-out;
+    max-height: none;
+}
+
+.collapsible-section.collapsed .collapsible-content {
+    max-height: 0px !important;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+.collapsible-section.collapsed .collapsible-header {
+    margin-bottom: 8px !important;
+}
+
+/* Smooth transitions for content elements */
+.collapsible-content > * {
+    transition: opacity 0.2s ease;
+}
+
+.collapsible-section.collapsed .collapsible-content > * {
+    opacity: 0;
+}
+
+/* Special handling for download section */
+.download-section.collapsible-section {
+    margin-top: 25px;
+    padding: 24px;
+    background: rgba(45, 45, 45, 0.95) !important;
+    border-radius: 15px;
+    border-left: 4px solid #28a745;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+}
+
+.download-section.collapsible-section.collapsed {
+    padding-bottom: 16px;
+}
+
+.download-section .collapsible-header {
+    color: rgba(255, 255, 255, 0.95) !important;
+    font-size: 1.25rem;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.download-section .collapsible-content > p {
+    color: rgba(255, 255, 255, 0.8) !important;
+    margin-bottom: 16px;
+    font-size: 0.95rem;
+}
+
+/* Enhanced Result Section Headers */
+.result-section.collapsible-section h3.collapsible-header {
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 1.3rem;
+    font-weight: 600;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
+}
+
+.result-section.collapsible-section .subtitle {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 400;
+    font-style: italic;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+    margin-left: 8px;
+}
+
+/* Accessibility improvements */
+.collapsible-header:focus {
+    outline: 2px solid rgba(102, 126, 234, 0.8);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+.collapsible-header[aria-expanded="false"] .collapse-indicator {
+    transform: rotate(-90deg);
+}
+
+.collapsible-header[aria-expanded="true"] .collapse-indicator {
+    transform: rotate(0deg);
+}
+
+/* Animation improvements */
+@keyframes expandContent {
+    from {
+        max-height: 0;
+        opacity: 0;
+    }
+    to {
+        max-height: var(--content-height);
+        opacity: 1;
+    }
+}
+
+@keyframes collapseContent {
+    from {
+        max-height: var(--content-height);
+        opacity: 1;
+    }
+    to {
+        max-height: 0;
+        opacity: 0;
+    }
+}
+
+/* Mobile responsiveness */
 @media (max-width: 768px) {
-    .recording-tabs {
-        flex-direction: column;
-        gap: 5px;
-    }
-
-    .tab-button {
-        padding: 12px 20px;
-        border-radius: 8px;
-        border-bottom: none;
-        border-left: 3px solid transparent;
-    }
-
-    .tab-button.active {
-        border-left-color: #667eea;
-        border-bottom-color: transparent;
-        background: rgba(102, 126, 234, 0.1);
-    }
-
-    .upload-area,
-    .mic-area {
-        padding: 40px 15px;
-    }
-
-    .upload-icon,
-    .mic-icon {
-        font-size: 3rem;
-    }
-
-    .upload-text,
-    .mic-text {
-        font-size: 1rem;
-    }
-
-    .controls {
-        grid-template-columns: 1fr;
-        gap: 15px;
-    }
-
-    .transcribe-buttons {
-        flex-direction: column;
-        gap: 10px;
-    }
-
-    .transcribe-btn {
-        padding: 12px 30px;
-        font-size: 1rem;
-    }
-
-    .stats {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 12px;
-    }
-
-    .stat-item {
-        padding: 16px;
-    }
-
-    .stat-value {
-        font-size: 1.5rem;
-    }
-
-    .segment-header {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 12px;
-    }
-
-    .segment-header > div:first-child {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .play-button {
-        width: 40px;
-        height: 30px;
-        font-size: 12px;
-    }
-
-    .segment-time {
-        font-size: 0.8rem;
-        padding: 4px 8px;
-    }
-
-    .download-buttons {
-        grid-template-columns: 1fr;
-    }
-
-    .download-btn {
-        background: linear-gradient(135deg, #28a745, #20c997) !important;
-        color: white !important;
-        justify-content: center;
-        padding: 10px 20px;
-    }
-
-    .speaker-label {
-        font-size: 0.8rem;
-        padding: 4px 8px;
-    }
-
-    .timestamp-item {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 4px;
-    }
-
-    .status-indicator {
-        position: relative;
-        top: auto;
-        right: auto;
-        margin-bottom: 20px;
-        display: block;
-        text-align: center;
-    }
-
-    .audio-notification {
-        bottom: 10px;
-        right: 10px;
-        left: 10px;
-        padding: 12px 15px;
-        font-size: 0.9rem;
-    }
-
-    .error {
-        padding: 12px;
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
-    }
-
-    .error-close {
-        align-self: flex-end;
-        margin-top: -5px;
-    }
-
-    .segments,
-    .timestamps {
-        padding: 16px;
-        max-height: 300px;
-    }
-
-    .result-section h3 {
+    .collapsible-header {
         font-size: 1.2rem;
+        gap: 10px;
+    }
+
+    .collapse-indicator {
+        font-size: 0.8em;
+    }
+
+    .download-section.collapsible-section {
+        padding: 16px;
+    }
+
+    .download-section.collapsible-section.collapsed {
+        padding-bottom: 12px;
     }
 }
 
 @media (max-width: 480px) {
-    .upload-area,
-    .mic-area {
-        padding: 30px 10px;
-    }
-
-    .upload-icon,
-    .mic-icon {
-        font-size: 2.5rem;
-    }
-
-    .upload-text,
-    .mic-text {
-        font-size: 0.95rem;
-    }
-
-    .upload-subtext,
-    .mic-subtext {
-        font-size: 0.85rem;
-    }
-
-    .recording-timer {
-        font-size: 1.5rem;
-    }
-
-    .transcribe-btn {
-        padding: 10px 20px;
-        font-size: 0.95rem;
-    }
-
-    .stats {
-        grid-template-columns: 1fr;
-        gap: 10px;
-    }
-
-    .stat-item {
-        padding: 12px;
-    }
-
-    .stat-value {
-        font-size: 1.3rem;
-    }
-
-    .stat-label {
-        font-size: 0.85rem;
-    }
-
-    .segments {
-        padding: 12px;
-        max-height: 250px;
-    }
-
-    .segment-item {
-        padding: 12px;
-        margin-bottom: 10px;
-    }
-
-    .segment-text {
-        font-size: 0.95rem;
-        line-height: 1.5;
-    }
-
-    .timestamps {
-        padding: 12px;
-        max-height: 200px;
-    }
-
-    .timestamp-word {
-        font-size: 0.9rem;
-    }
-
-    .timestamp-time {
-        font-size: 0.8rem;
-    }
-
-    .download-section {
-        padding: 16px;
-    }
-
-    .download-btn {
-        padding: 8px 16px;
-        font-size: 0.9rem;
-    }
-
-    .speaker-summary {
-        padding: 12px;
-    }
-
-    .speaker-item {
-        flex-direction: column;
-        align-items: flex-start;
+    .collapsible-header {
+        font-size: 1.1rem;
         gap: 8px;
     }
 
-    .speaker-stats {
-        width: 100%;
-        justify-content: space-between;
+    .result-section.collapsible-section h3.collapsible-header {
+        font-size: 1.2rem;
     }
 
-    .transcription-text {
-        padding: 16px;
-        font-size: 1rem;
-        line-height: 1.6;
+    .download-section .collapsible-header {
+        font-size: 1.1rem;
     }
 }
 
-/* Touch Device Optimizations */
+/* Touch device optimizations */
 @media (hover: none) and (pointer: coarse) {
-    .btn,
-    .transcribe-btn,
-    .download-btn,
-    .play-button {
+    .collapsible-header {
         min-height: 44px;
-        min-width: 44px;
+        padding: 8px 0;
     }
 
-    .tab-button {
-        min-height: 44px;
-        padding: 12px 20px;
-    }
-
-    .speaker-label {
-        min-height: 32px;
-        padding: 6px 12px;
-    }
-
-    .upload-area:hover,
-    .mic-area:hover,
-    .segment-item:hover,
-    .btn:hover,
-    .transcribe-btn:hover,
-    .download-btn:hover,
-    .play-button:hover {
+    .collapsible-header:hover {
         transform: none;
-        box-shadow: none;
+        opacity: 1;
     }
 
-    *:focus {
-        outline: 3px solid #667eea;
-        outline-offset: 2px;
+    .collapsible-header:hover .collapse-indicator {
+        transform: none;
     }
 }
 
-/* High contrast mode support */
+/* High contrast mode */
 @media (prefers-contrast: high) {
-    .segments,
-    .timestamps,
-    .speaker-summary,
-    .download-section,
-    .transcription-text,
-    .stat-item,
-    .segment-item,
-    .file-info,
-    .recorded-info {
-        background: white !important;
-        border: 2px solid #000 !important;
-        color: #000 !important;
+    .collapsible-header {
+        border: 2px solid white;
+        padding: 8px;
+        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.8);
     }
 
-    .result-section h3 {
+    .collapse-indicator {
         color: white !important;
-        text-shadow: 2px 2px 4px rgba(0, 0, 0, 1) !important;
-        font-weight: 700 !important;
-    }
-
-    .subtitle {
-        color: rgba(255, 255, 255, 0.9) !important;
-        text-shadow: 2px 2px 4px rgba(0, 0, 0, 1) !important;
+        background: black;
+        padding: 2px 4px;
+        border-radius: 2px;
     }
 }
 
-/* Reduced Motion */
+/* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
+    .collapsible-content,
+    .collapsible-header,
+    .collapse-indicator,
+    .collapsible-section {
+        transition: none !important;
     }
 
-    .wave-bar {
-        animation: none;
+    .collapsible-header:hover {
+        transform: none;
     }
 
-    .play-button.playing {
-        animation: none;
+    .collapsible-header:hover .collapse-indicator {
+        transform: none;
     }
+}
 
-    .mic-area.recording {
-        animation: none;
-    }
+/* Enhanced visual feedback */
+.collapsible-section:not(.collapsed) {
+    animation: none;
+}
+
+.collapsible-section.collapsed {
+    opacity: 0.9;
+}
+
+/* Improved spacing when collapsed */
+.collapsible-section.collapsed + .collapsible-section,
+.collapsible-section.collapsed + .result-section,
+.result-section + .collapsible-section.collapsed {
+    margin-top: 15px;
+}
+
+/* Content fade effect */
+.collapsible-content {
+    transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out;
+}
+
+.collapsible-section:not(.collapsed) .collapsible-content {
+    opacity: 1;
+}
+
+.collapsible-section.collapsed .collapsible-content {
+    opacity: 0;
+    transition: max-height 0.3s ease-in-out, opacity 0.15s ease-in-out;
+}
+
+/* Loading state for collapsible sections */
+.collapsible-section.loading {
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+.collapsible-section.loading .collapsible-header::after {
+    content: '';
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    margin-left: 8px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top: 2px solid rgba(255, 255, 255, 0.8);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+/* Ensure proper stacking context */
+.collapsible-section {
+    position: relative;
+    z-index: 1;
+}
+
+.collapsible-header {
+    position: relative;
+    z-index: 2;
+}
+
+.collapsible-content {
+    position: relative;
+    z-index: 1;
+}
+
+/* Smooth color transitions for indicators */
+.collapse-indicator {
+    transition: all 0.3s ease, transform 0.3s ease;
+}
+
+/* Enhanced hover states */
+.collapsible-header:hover .collapse-indicator {
+    color: rgba(255, 255, 255, 1);
+    text-shadow: 0 0 4px rgba(255, 255, 255, 0.3);
+}
+
+/* Focus improvements for keyboard navigation */
+.collapsible-header:focus-visible {
+    outline: 3px solid rgba(102, 126, 234, 0.8);
+    outline-offset: 3px;
+    border-radius: 6px;
+}
+
+/* Ensure all content respects the collapsed state */
+.collapsible-section.collapsed .collapsible-content * {
+    visibility: hidden;
+}
+
+.collapsible-section:not(.collapsed) .collapsible-content * {
+    visibility: visible;
 }
