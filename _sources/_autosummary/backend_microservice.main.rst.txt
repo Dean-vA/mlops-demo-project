@@ -3,11 +3,11 @@ backend\_microservice.main
 
 .. automodule:: backend_microservice.main
 
-   
+
    .. rubric:: Functions
 
    .. autosummary::
-   
+
       add_speaker_tags_to_segments
       diarize_audio
       extract_data_from_transcription_result
@@ -19,10 +19,9 @@ backend\_microservice.main
       log_data_structure_size
       log_memory_usage
       transcribe_audio
-   
+
    .. rubric:: Classes
 
    .. autosummary::
-   
+
       Any
-   

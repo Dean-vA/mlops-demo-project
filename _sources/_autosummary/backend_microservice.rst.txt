@@ -14,4 +14,5 @@
    diarization
    gpu_utils
    main
+   summarization
    transcription
