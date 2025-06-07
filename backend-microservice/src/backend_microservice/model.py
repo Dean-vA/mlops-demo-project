@@ -340,7 +340,7 @@ def create_trainer(model: AutoModelForCausalLM, tokenizer: AutoTokenizer, datase
     # Create data collator
     data_collator = create_data_collator(tokenizer)
 
-    # Initialize trainer
+    # Initialize trainer (MLflow autolog will handle callbacks automatically)
     trainer = Trainer(
         model=model,
         args=training_args,
