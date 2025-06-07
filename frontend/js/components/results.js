@@ -1,10 +1,11 @@
-// Results Component - Displays transcription results with speaker support
+// Debug Results Component - Let's find the exact issue
 class ResultsComponent {
     constructor(state, services) {
         this.state = state;
         this.services = services;
         this.container = document.getElementById('results-component');
         this.currentlyEditingLabel = null;
+        this.currentData = null;
     }
 
     async init() {
@@ -51,15 +52,19 @@ class ResultsComponent {
                 </div>
 
                 <!-- Segments -->
-                <div class="result-section" id="segments-section" style="display: none;">
+                <div class="result-section" id="segments-section" style="display: block; border: 2px solid red;">
                     <h3>📑 Segments <span class="subtitle">Click to play audio</span></h3>
-                    <div class="segments" id="segments"></div>
+                    <div class="segments" id="segments" style="border: 2px solid blue; min-height: 50px;">
+                        <div style="color: red; padding: 10px;">DEBUG: Segments container</div>
+                    </div>
                 </div>
 
                 <!-- Word Timestamps -->
-                <div class="result-section" id="timestamps-section" style="display: none;">
+                <div class="result-section" id="timestamps-section" style="display: block; border: 2px solid green;">
                     <h3>⏱️ Word Timestamps</h3>
-                    <div class="timestamps" id="timestamps"></div>
+                    <div class="timestamps" id="timestamps" style="border: 2px solid orange; min-height: 50px;">
+                        <div style="color: green; padding: 10px;">DEBUG: Timestamps container</div>
+                    </div>
                 </div>
             </div>
         `;
@@ -88,6 +93,13 @@ class ResultsComponent {
             timestampsSection: this.container.querySelector('#timestamps-section'),
             timestamps: this.container.querySelector('#timestamps')
         };
+
+        console.log('DEBUG: Elements cached:', {
+            segmentsSection: !!this.elements.segmentsSection,
+            segments: !!this.elements.segments,
+            timestampsSection: !!this.elements.timestampsSection,
+            timestamps: !!this.elements.timestamps
+        });
     }
 
     setupEventListeners() {
@@ -96,61 +108,55 @@ class ResultsComponent {
             this.copyTranscription();
         });
 
-        // Audio service events
-        document.addEventListener('segmentPlaybackStarted', (event) => {
-            this.updateSegmentPlaybackUI(event.detail.element, true);
+        // Listen for settings changes to update visibility
+        document.addEventListener('settingsChanged', (event) => {
+            console.log('DEBUG: Settings changed event received:', event.detail);
+            this.testToggleNow(event.detail.preferences);
         });
+    }
 
-        document.addEventListener('segmentPlaybackStopped', (event) => {
-            this.updateSegmentPlaybackUI(event.detail.element, false);
-        });
+    // TEST: Direct toggle test
+    testToggleNow(preferences) {
+        console.log('DEBUG: testToggleNow called with:', preferences);
+        console.log('DEBUG: Segments section element:', this.elements.segmentsSection);
+        console.log('DEBUG: Timestamps section element:', this.elements.timestampsSection);
 
-        // Handle clicks outside editing labels
-        document.addEventListener('click', (e) => {
-            if (this.currentlyEditingLabel && !this.currentlyEditingLabel.contains(e.target)) {
-                this.finishEditingSpeaker(this.currentlyEditingLabel, true);
-            }
-        });
+        if (this.elements.segmentsSection) {
+            console.log('DEBUG: Setting segments display to:', preferences.showSegments ? 'block' : 'none');
+            this.elements.segmentsSection.style.display = preferences.showSegments ? 'block' : 'none';
+        }
+
+        if (this.elements.timestampsSection) {
+            console.log('DEBUG: Setting timestamps display to:', preferences.showWordTimestamps ? 'block' : 'none');
+            this.elements.timestampsSection.style.display = preferences.showWordTimestamps ? 'block' : 'none';
+        }
+
+        // Force a visual check
+        setTimeout(() => {
+            console.log('DEBUG: After toggle - segments visible:',
+                this.elements.segmentsSection.style.display !== 'none');
+            console.log('DEBUG: After toggle - timestamps visible:',
+                this.elements.timestampsSection.style.display !== 'none');
+        }, 100);
     }
 
     // Main display method
     display(data) {
-        console.log('Displaying results:', data);
+        console.log('DEBUG: display() called with data:', data);
+
+        // Store current data
+        this.currentData = data;
 
         // Reset state
         this.hide();
 
-        // Extract data based on format
-        let transcriptionData, diarizationData;
-        const mode = this.state.currentMode;
-
-        if (mode === 'diarize' && data.transcription) {
-            transcriptionData = data.transcription;
-            diarizationData = data.diarization;
-        } else {
-            transcriptionData = data;
-            diarizationData = null;
-        }
-
         // Display transcription
-        this.displayTranscription(transcriptionData);
-
-        // Display statistics
-        this.displayStatistics(transcriptionData, diarizationData, data);
-
-        // Display speaker information
-        if (diarizationData) {
-            this.initializeSpeakerNames(diarizationData.speakers);
-            this.displaySpeakerSummary(diarizationData);
-        }
-
-        // Display segments and timestamps based on settings
-        const preferences = window.app.components.settings.getUIPreferences();
-        this.displaySegments(transcriptionData, preferences, mode === 'diarize');
-        this.displayTimestamps(transcriptionData, preferences);
+        this.displayTranscription(data);
 
         // Show results
         this.show();
+
+        console.log('DEBUG: Results displayed, sections should be visible');
     }
 
     displayTranscription(data) {
@@ -160,323 +166,14 @@ class ResultsComponent {
             transcriptionText = data.text;
         } else if (Array.isArray(data.text) && data.text.length > 0) {
             transcriptionText = data.text[0].text || 'No transcription found';
+        } else if (data.transcription && typeof data.transcription.text === 'string') {
+            transcriptionText = data.transcription.text;
         } else {
             transcriptionText = 'No transcription text found';
         }
 
         this.elements.transcriptionText.textContent = transcriptionText;
-    }
-
-    displayStatistics(transcriptionData, diarizationData, rawData) {
-        // Processing time
-        const processingTime = transcriptionData.processing_time_sec ||
-                             rawData.combined_processing_time || 0;
-        this.elements.processingTime.textContent = processingTime.toFixed(2);
-
-        // Word count
-        const text = typeof transcriptionData.text === 'string'
-            ? transcriptionData.text
-            : (transcriptionData.text?.[0]?.text || '');
-        const wordCount = text.split(' ').filter(word => word.trim().length > 0).length;
-        this.elements.wordCount.textContent = wordCount;
-
-        // Segment count
-        const segmentCount = transcriptionData.segments?.length || 0;
-        this.elements.segmentCount.textContent = segmentCount;
-
-        // Speaker count (if available)
-        if (diarizationData) {
-            const speakerCount = diarizationData.num_speakers_detected || 0;
-            this.elements.speakerCount.textContent = speakerCount;
-            this.elements.speakerCountStat.style.display = 'block';
-        } else {
-            this.elements.speakerCountStat.style.display = 'none';
-        }
-    }
-
-    displaySpeakerSummary(diarizationData) {
-        if (!diarizationData.speakers) {
-            this.elements.speakerSummarySection.style.display = 'none';
-            return;
-        }
-
-        UIUtils.clearElement(this.elements.speakerSummary);
-
-        // Calculate speaker statistics
-        const speakerStats = this.calculateSpeakerStats(diarizationData.speakers);
-
-        // Display each speaker
-        speakerStats.forEach(stat => {
-            const speakerItem = this.createSpeakerSummaryItem(stat);
-            this.elements.speakerSummary.appendChild(speakerItem);
-        });
-
-        this.elements.speakerSummarySection.style.display = 'block';
-    }
-
-    calculateSpeakerStats(speakers) {
-        const stats = [];
-        let totalDuration = 0;
-
-        Object.entries(speakers).forEach(([speaker, segments]) => {
-            const duration = segments.reduce((sum, seg) => sum + seg.duration, 0);
-            totalDuration += duration;
-            stats.push({
-                speaker: speaker,
-                duration: duration,
-                segments: segments.length
-            });
-        });
-
-        // Sort by duration and add percentages
-        stats.sort((a, b) => b.duration - a.duration);
-        stats.forEach(stat => {
-            stat.percentage = ((stat.duration / totalDuration) * 100).toFixed(1);
-        });
-
-        return stats;
-    }
-
-    createSpeakerSummaryItem(stat) {
-        const speakerItem = UIUtils.createElement('div', 'speaker-item');
-
-        const speakerInfo = UIUtils.createElement('div', 'speaker-info');
-        const speakerLabel = this.createEditableSpeakerLabel(stat.speaker);
-        const segmentInfo = UIUtils.createElement('span', '', `${stat.segments} segments`);
-
-        speakerInfo.appendChild(speakerLabel);
-        speakerInfo.appendChild(segmentInfo);
-
-        const speakerStatsDiv = UIUtils.createElementWithHTML('div', 'speaker-stats', `
-            <span>${stat.duration.toFixed(1)}s</span>
-            <span>${stat.percentage}%</span>
-        `);
-
-        speakerItem.appendChild(speakerInfo);
-        speakerItem.appendChild(speakerStatsDiv);
-
-        return speakerItem;
-    }
-
-    displaySegments(data, preferences, showSpeakers) {
-        if (!preferences.showSegments || !data.segments || data.segments.length === 0) {
-            this.elements.segmentsSection.style.display = 'none';
-            return;
-        }
-
-        UIUtils.clearElement(this.elements.segments);
-
-        data.segments.forEach((segment, index) => {
-            const segmentItem = this.createSegmentItem(segment, index, showSpeakers);
-            this.elements.segments.appendChild(segmentItem);
-        });
-
-        this.elements.segmentsSection.style.display = 'block';
-    }
-
-    createSegmentItem(segment, index, showSpeakers) {
-        const segmentItem = UIUtils.createElement('div', 'segment-item');
-
-        // Extract segment data
-        const startTime = segment.start || 0;
-        const endTime = segment.end || 0;
-        const duration = (endTime - startTime).toFixed(2);
-        const text = segment.text || segment.segment || 'No text available';
-        const speaker = segment.speaker;
-
-        // Create header
-        const header = UIUtils.createElement('div', 'segment-header');
-
-        const leftSection = UIUtils.createElement('div', '');
-        leftSection.style.cssText = 'display: flex; align-items: center; gap: 10px;';
-
-        // Play button
-        const playButton = UIUtils.createElement('button', 'play-button', '▶️');
-        playButton.title = 'Play this segment';
-
-        // Time display
-        const timeDiv = UIUtils.createElement('div', 'segment-time',
-            `${startTime.toFixed(2)}s - ${endTime.toFixed(2)}s`);
-
-        leftSection.appendChild(playButton);
-        leftSection.appendChild(timeDiv);
-
-        // Speaker label
-        if (showSpeakers && speaker) {
-            const speakerLabel = this.createEditableSpeakerLabel(speaker);
-            leftSection.appendChild(speakerLabel);
-        }
-
-        // Duration
-        const durationDiv = UIUtils.createElement('div', 'segment-duration', `${duration}s duration`);
-
-        header.appendChild(leftSection);
-        header.appendChild(durationDiv);
-
-        // Segment text
-        const textDiv = UIUtils.createElement('div', 'segment-text', text);
-
-        segmentItem.appendChild(header);
-        segmentItem.appendChild(textDiv);
-
-        // Add click handlers for playback
-        const playHandler = async (e) => {
-            e.stopPropagation();
-
-            if (this.services.audio.currentlyPlayingSegment === segmentItem) {
-                this.services.audio.stopCurrentAudio();
-            } else {
-                try {
-                    const audioInput = this.state.getAudioInput();
-                    await this.services.audio.playAudioSegment(
-                        audioInput, startTime, endTime, segmentItem
-                    );
-                } catch (error) {
-                    console.error('Error playing segment:', error);
-                    UIUtils.showToast('Could not play audio segment', 'error');
-                }
-            }
-        };
-
-        playButton.addEventListener('click', playHandler);
-        segmentItem.addEventListener('click', playHandler);
-
-        return segmentItem;
-    }
-
-    displayTimestamps(data, preferences) {
-        if (!preferences.showWordTimestamps ||
-            !data.timestamps?.word ||
-            data.timestamps.word.length === 0) {
-            this.elements.timestampsSection.style.display = 'none';
-            return;
-        }
-
-        UIUtils.clearElement(this.elements.timestamps);
-
-        data.timestamps.word.forEach(item => {
-            const timestampItem = UIUtils.createElementWithHTML('div', 'timestamp-item', `
-                <span class="timestamp-word">${item.word}</span>
-                <span class="timestamp-time">${item.start.toFixed(2)}s - ${item.end.toFixed(2)}s</span>
-            `);
-
-            this.elements.timestamps.appendChild(timestampItem);
-        });
-
-        this.elements.timestampsSection.style.display = 'block';
-    }
-
-    // Speaker management
-    initializeSpeakerNames(speakers) {
-        this.state.setSpeakerNames(UIUtils.initializeSpeakerNames(speakers));
-    }
-
-    createEditableSpeakerLabel(speakerId) {
-        const displayName = this.state.getDisplayName(speakerId);
-        const speakerClass = UIUtils.getSpeakerClass(speakerId);
-
-        const label = UIUtils.createElementWithHTML('div',
-            `speaker-label editable ${speakerClass}`, `
-            ${displayName.toUpperCase()}
-            <div class="speaker-rename-hint">Click to rename</div>
-        `);
-
-        label.setAttribute('data-speaker-id', speakerId);
-
-        label.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.startEditingSpeaker(label, speakerId);
-        });
-
-        return label;
-    }
-
-    startEditingSpeaker(labelElement, speakerId) {
-        if (this.currentlyEditingLabel) {
-            this.finishEditingSpeaker(this.currentlyEditingLabel, false);
-        }
-
-        this.currentlyEditingLabel = labelElement;
-        const currentName = this.state.getDisplayName(speakerId);
-
-        labelElement.classList.add('editing');
-
-        const input = UIUtils.createElement('input', 'speaker-label-input');
-        input.type = 'text';
-        input.value = currentName;
-        input.maxLength = 20;
-
-        labelElement.innerHTML = '';
-        labelElement.appendChild(input);
-
-        input.focus();
-        input.select();
-
-        const finishEdit = (save = true) => {
-            this.finishEditingSpeaker(labelElement, save, speakerId, input.value.trim());
-        };
-
-        input.addEventListener('blur', () => finishEdit(true));
-        input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') finishEdit(true);
-            else if (e.key === 'Escape') finishEdit(false);
-        });
-        input.addEventListener('click', (e) => e.stopPropagation());
-    }
-
-    finishEditingSpeaker(labelElement, save = true, speakerId = null, newName = null) {
-        if (!labelElement || !labelElement.classList.contains('editing')) return;
-
-        labelElement.classList.remove('editing');
-        this.currentlyEditingLabel = null;
-
-        if (save && speakerId && newName && newName.length > 0) {
-            // Update speaker name in state
-            const newSpeakerNames = { ...this.state.speakerNames };
-            newSpeakerNames[speakerId] = newName;
-            this.state.setSpeakerNames(newSpeakerNames);
-
-            // Update all labels with this speaker ID
-            this.updateAllSpeakerLabels(speakerId, newName);
-        } else {
-            // Restore original content
-            const currentName = speakerId ? this.state.getDisplayName(speakerId) : 'Unknown';
-            labelElement.innerHTML = `
-                ${currentName.toUpperCase()}
-                <div class="speaker-rename-hint">Click to rename</div>
-            `;
-        }
-    }
-
-    updateAllSpeakerLabels(speakerId, newName) {
-        const allLabels = document.querySelectorAll('.speaker-label');
-        allLabels.forEach(label => {
-            const labelSpeakerId = label.getAttribute('data-speaker-id');
-            if (labelSpeakerId === speakerId && !label.classList.contains('editing')) {
-                label.innerHTML = `
-                    ${newName.toUpperCase()}
-                    <div class="speaker-rename-hint">Click to rename</div>
-                `;
-            }
-        });
-    }
-
-    updateSegmentPlaybackUI(segmentElement, isPlaying) {
-        if (isPlaying) {
-            segmentElement.classList.add('playing');
-            const playButton = segmentElement.querySelector('.play-button');
-            if (playButton) {
-                playButton.textContent = '⏸️';
-                playButton.classList.add('playing');
-            }
-        } else {
-            segmentElement.classList.remove('playing');
-            const playButton = segmentElement.querySelector('.play-button');
-            if (playButton) {
-                playButton.textContent = '▶️';
-                playButton.classList.remove('playing');
-            }
-        }
+        console.log('DEBUG: Transcription text set:', transcriptionText.substring(0, 100) + '...');
     }
 
     async copyTranscription() {
@@ -490,10 +187,11 @@ class ResultsComponent {
 
     show() {
         this.elements.results.style.display = 'block';
-        UIUtils.fadeIn(this.elements.results);
+        console.log('DEBUG: Results container shown');
     }
 
     hide() {
         this.elements.results.style.display = 'none';
+        this.currentData = null;
     }
 }
