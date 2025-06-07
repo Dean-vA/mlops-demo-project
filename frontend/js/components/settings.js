@@ -4,10 +4,12 @@ class SettingsComponent {
         this.state = state;
         this.container = document.getElementById('settings-component');
         this.settings = {
-            returnTimestamps: true,
+            returnTimestamps: true, // Always true for API
             showSegments: true,
             showWordTimestamps: true,
-            numSpeakers: null
+            numSpeakers: null,
+            chunkDurationSec: null,
+            overlapDurationSec: null
         };
     }
 
@@ -15,6 +17,11 @@ class SettingsComponent {
         this.render();
         this.setupEventListeners();
         this.loadSettings();
+
+        // Emit initial settings to set up the UI correctly
+        setTimeout(() => {
+            this.emitSettingsChange();
+        }, 100);
     }
 
     render() {
@@ -78,13 +85,14 @@ class SettingsComponent {
             this.settings.showSegments = this.elements.segmentsToggle.checked;
             this.saveSettings();
             this.emitSettingsChange();
+            console.log('DEBUG: Segments toggle changed to:', this.settings.showSegments);
         });
 
         this.elements.timestampsToggle.addEventListener('change', () => {
             this.settings.showWordTimestamps = this.elements.timestampsToggle.checked;
-            this.settings.returnTimestamps = this.elements.timestampsToggle.checked;
             this.saveSettings();
             this.emitSettingsChange();
+            console.log('DEBUG: Timestamps toggle changed to:', this.settings.showWordTimestamps);
         });
 
         // Number inputs with validation
@@ -92,30 +100,28 @@ class SettingsComponent {
             const value = parseInt(this.elements.numSpeakersInput.value);
             this.settings.numSpeakers = (value >= 1 && value <= 20) ? value : null;
             this.saveSettings();
+            this.emitSettingsChange();
         }, 500));
 
         this.elements.chunkDurationInput.addEventListener('input', UIUtils.debounce(() => {
             const value = parseFloat(this.elements.chunkDurationInput.value);
             this.settings.chunkDurationSec = (value >= 10 && value <= 300) ? value : null;
             this.saveSettings();
+            this.emitSettingsChange();
         }, 500));
 
         this.elements.overlapDurationInput.addEventListener('input', UIUtils.debounce(() => {
             const value = parseFloat(this.elements.overlapDurationInput.value);
             this.settings.overlapDurationSec = (value >= 0 && value <= 30) ? value : null;
             this.saveSettings();
+            this.emitSettingsChange();
         }, 500));
-
-        // Listen for results to show/hide sections
-        document.addEventListener('transcriptionComplete', (event) => {
-            this.updateVisibilityBasedOnResults(event.detail);
-        });
     }
 
     // Get current settings for API calls
     getSettings() {
         return {
-            returnTimestamps: this.settings.returnTimestamps,
+            returnTimestamps: true, // ALWAYS request timestamps regardless of UI toggle
             numSpeakers: this.settings.numSpeakers,
             chunkDurationSec: this.settings.chunkDurationSec,
             overlapDurationSec: this.settings.overlapDurationSec
@@ -130,58 +136,19 @@ class SettingsComponent {
         };
     }
 
-    // Update visibility of result sections based on settings
-    updateVisibilityBasedOnResults(data) {
-        const preferences = this.getUIPreferences();
-
-        // Show/hide segments section
-        const segmentsSection = document.getElementById('segments-section');
-        if (segmentsSection) {
-            const hasSegments = data.transcription?.segments?.length > 0 ||
-                               data.segments?.length > 0;
-            segmentsSection.style.display =
-                (preferences.showSegments && hasSegments) ? 'block' : 'none';
-        }
-
-        // Show/hide timestamps section
-        const timestampsSection = document.getElementById('timestamps-section');
-        if (timestampsSection) {
-            const hasTimestamps = data.transcription?.timestamps?.word?.length > 0 ||
-                                 data.timestamps?.word?.length > 0;
-            timestampsSection.style.display =
-                (preferences.showWordTimestamps && hasTimestamps) ? 'block' : 'none';
-        }
-    }
-
-    // Validate settings
-    validateSettings() {
-        const errors = [];
-
-        if (this.settings.numSpeakers !== null) {
-            if (this.settings.numSpeakers < 1 || this.settings.numSpeakers > 20) {
-                errors.push('Number of speakers must be between 1 and 20');
-            }
-        }
-
-        if (this.settings.chunkDurationSec !== null) {
-            if (this.settings.chunkDurationSec < 10 || this.settings.chunkDurationSec > 300) {
-                errors.push('Chunk duration must be between 10 and 300 seconds');
-            }
-        }
-
-        if (this.settings.overlapDurationSec !== null) {
-            if (this.settings.overlapDurationSec < 0 || this.settings.overlapDurationSec > 30) {
-                errors.push('Overlap duration must be between 0 and 30 seconds');
-            }
-        }
-
-        return errors;
-    }
-
     // Load settings from localStorage
     loadSettings() {
         const saved = UIUtils.loadFromLocalStorage('parakeet-settings', {});
-        this.settings = { ...this.settings, ...saved };
+
+        // Merge saved settings, but ensure sane defaults
+        this.settings = {
+            returnTimestamps: true, // Always true for API
+            showSegments: saved.showSegments !== undefined ? saved.showSegments : true,
+            showWordTimestamps: saved.showWordTimestamps !== undefined ? saved.showWordTimestamps : true,
+            numSpeakers: saved.numSpeakers || null,
+            chunkDurationSec: saved.chunkDurationSec || null,
+            overlapDurationSec: saved.overlapDurationSec || null
+        };
 
         // Update UI to match loaded settings
         this.elements.segmentsToggle.checked = this.settings.showSegments;
@@ -198,11 +165,27 @@ class SettingsComponent {
         if (this.settings.overlapDurationSec) {
             this.elements.overlapDurationInput.value = this.settings.overlapDurationSec;
         }
+
+        console.log('DEBUG: Settings loaded and applied:', this.settings);
     }
 
     // Save settings to localStorage
     saveSettings() {
         UIUtils.saveToLocalStorage('parakeet-settings', this.settings);
+        console.log('DEBUG: Settings saved:', this.settings);
+    }
+
+    // Emit settings change event
+    emitSettingsChange() {
+        const preferences = this.getUIPreferences();
+        const event = new CustomEvent('settingsChanged', {
+            detail: {
+                settings: this.getSettings(),
+                preferences: preferences
+            }
+        });
+        document.dispatchEvent(event);
+        console.log('DEBUG: Settings change event emitted:', preferences);
     }
 
     // Reset to defaults
@@ -227,62 +210,6 @@ class SettingsComponent {
         this.emitSettingsChange();
 
         UIUtils.showToast('Settings reset to defaults', 'info');
-    }
-
-    // Export settings
-    exportSettings() {
-        const settingsJson = JSON.stringify(this.settings, null, 2);
-        const blob = new Blob([settingsJson], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'parakeet-settings.json';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-
-        UIUtils.showToast('Settings exported successfully', 'success');
-    }
-
-    // Import settings
-    async importSettings(file) {
-        try {
-            const text = await file.text();
-            const importedSettings = JSON.parse(text);
-
-            // Validate imported settings
-            const validKeys = Object.keys(this.settings);
-            const filteredSettings = {};
-
-            for (const key of validKeys) {
-                if (key in importedSettings) {
-                    filteredSettings[key] = importedSettings[key];
-                }
-            }
-
-            this.settings = { ...this.settings, ...filteredSettings };
-            this.loadSettings(); // Update UI
-            this.saveSettings();
-            this.emitSettingsChange();
-
-            UIUtils.showToast('Settings imported successfully', 'success');
-        } catch (error) {
-            console.error('Error importing settings:', error);
-            UIUtils.showToast('Failed to import settings', 'error');
-        }
-    }
-
-    // Emit settings change event
-    emitSettingsChange() {
-        const event = new CustomEvent('settingsChanged', {
-            detail: {
-                settings: this.getSettings(),
-                preferences: this.getUIPreferences()
-            }
-        });
-        document.dispatchEvent(event);
     }
 
     // Get settings summary for display
