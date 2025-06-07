@@ -441,7 +441,12 @@
     height: 8px;
     background: rgba(255, 255, 255, 0.2);
     border-radius: 4px;
-    overflow/* Recording Tabs */
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+
+/* Recording Tabs */
 .recording-tabs {
     display: flex;
     margin-bottom: 20px;

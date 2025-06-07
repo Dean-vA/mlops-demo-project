@@ -6,6 +6,7 @@ class SummaryComponent {
         this.container = document.getElementById('summary-component');
         this.currentSummary = null;
         this.isGenerating = false;
+        this.isReady = false; // Track if component is ready for summary generation
     }
 
     async init() {
@@ -207,34 +208,45 @@ class SummaryComponent {
     }
 
     onTranscriptionComplete(data) {
+        console.log('Summary component received transcription data:', data);
+
         // Check if this is diarization data with segments
         const isDiarization = this.state.currentMode === 'diarize' && data.diarization;
 
         if (isDiarization && data.transcription) {
             this.prepareSummaryGeneration(data);
             this.state.currentTranscriptionData = data; // Store for summary generation
+            this.isReady = true;
         } else {
-            this.hide();
+            this.isReady = false;
+            // Only disable if not ready for summary
+            this.elements.generateBtn.disabled = true;
         }
     }
 
     prepareSummaryGeneration(data) {
-        // Enable the generate button
-        this.elements.generateBtn.disabled = false;
+        console.log('Preparing summary generation...');
 
         // Estimate chunks and word count
         const segments = this.extractSegments(data.transcription);
         if (segments && segments.length > 0) {
             const wordCount = this.estimateWordCount(segments);
-            const chunkCount = Math.max(1, Math.ceil(wordCount / 50000));
+            const chunkCount = Math.max(1, Math.ceil(wordCount / 15000)); // 15k words per chunk
 
             this.elements.chunkCount.textContent = chunkCount;
             this.elements.wordCountEstimate.textContent = wordCount.toLocaleString();
             this.elements.summaryInfo.style.display = 'block';
-        }
 
-        // Show the summary tab content
-        this.show();
+            // Enable the generate button
+            this.elements.generateBtn.disabled = false;
+            this.isReady = true;
+
+            console.log('Summary generation prepared - button enabled');
+        } else {
+            console.warn('No segments found for summary generation');
+            this.elements.generateBtn.disabled = true;
+            this.isReady = false;
+        }
     }
 
     extractSegments(transcriptionData) {
@@ -244,6 +256,12 @@ class SummaryComponent {
                 return firstItem.timestamp.segment;
             }
         }
+
+        // Also check segments directly
+        if (transcriptionData.segments && transcriptionData.segments.length > 0) {
+            return transcriptionData.segments;
+        }
+
         return null;
     }
 
@@ -337,6 +355,7 @@ class SummaryComponent {
         // Hide progress, show results
         this.elements.progressContainer.style.display = 'none';
         this.elements.resultContainer.style.display = 'block';
+        // Re-enable the generate button (for regeneration)
         this.elements.generateBtn.disabled = false;
 
         // Display sections
@@ -355,14 +374,14 @@ class SummaryComponent {
             this.elements.totalTokens.textContent = (tokenUsage.total_tokens || 0).toLocaleString();
             this.elements.promptTokens.textContent = (tokenUsage.prompt_tokens || 0).toLocaleString();
             this.elements.completionTokens.textContent = (tokenUsage.completion_tokens || 0).toLocaleString();
-            this.elements.estimatedCost.textContent = `${(tokenUsage.estimated_cost_usd?.total || 0).toFixed(4)}`;
+            this.elements.estimatedCost.textContent = `$${(tokenUsage.estimated_cost_usd?.total || 0).toFixed(4)}`;
 
             // Efficiency metrics
             if (tokenUsage.efficiency_metrics) {
                 const efficiency = tokenUsage.efficiency_metrics;
                 this.elements.compressionRatio.textContent = `${efficiency.compression_ratio || 0}:1`;
-                this.elements.processingSpeed.textContent = `${(efficiency.processing_speed_words_per_sec || 0).toLocaleString()} words/sec`;
-                this.elements.tokensPerWord.textContent = `${efficiency.tokens_per_word_generated || 0} tokens`;
+                this.elements.processingSpeed.textContent = `${(efficiency.processing_speed_words_per_sec || 0).toFixed(0)}`;
+                this.elements.tokensPerWord.textContent = `${(efficiency.tokens_per_word_generated || 0).toFixed(1)}`;
             }
         }
     }
@@ -421,7 +440,8 @@ class SummaryComponent {
         this.elements.resultContainer.style.display = 'none';
         this.elements.errorContainer.style.display = 'block';
         this.elements.errorText.textContent = message;
-        this.elements.generateBtn.disabled = false;
+        // Re-enable button for retry
+        this.elements.generateBtn.disabled = !this.isReady;
     }
 
     formatError(error) {
@@ -494,13 +514,13 @@ class SummaryComponent {
             text += `Total Tokens: ${(tokenUsage.total_tokens || 0).toLocaleString()}\n`;
             text += `Input Tokens: ${(tokenUsage.prompt_tokens || 0).toLocaleString()}\n`;
             text += `Output Tokens: ${(tokenUsage.completion_tokens || 0).toLocaleString()}\n`;
-            text += `Estimated Cost: ${(tokenUsage.estimated_cost_usd?.total || 0).toFixed(4)}\n`;
+            text += `Estimated Cost: $${(tokenUsage.estimated_cost_usd?.total || 0).toFixed(4)}\n`;
 
             if (tokenUsage.efficiency_metrics) {
                 const efficiency = tokenUsage.efficiency_metrics;
                 text += `Compression Ratio: ${efficiency.compression_ratio || 0}:1\n`;
-                text += `Processing Speed: ${(efficiency.processing_speed_words_per_sec || 0).toLocaleString()} words/sec\n`;
-                text += `Tokens per Generated Word: ${efficiency.tokens_per_word_generated || 0}\n`;
+                text += `Processing Speed: ${(efficiency.processing_speed_words_per_sec || 0).toFixed(0)} words/sec\n`;
+                text += `Tokens per Generated Word: ${(efficiency.tokens_per_word_generated || 0).toFixed(1)}\n`;
             }
         }
 
@@ -537,35 +557,43 @@ class SummaryComponent {
             markdown += `- **Total Tokens**: ${(tokenUsage.total_tokens || 0).toLocaleString()}\n`;
             markdown += `- **Input Tokens**: ${(tokenUsage.prompt_tokens || 0).toLocaleString()}\n`;
             markdown += `- **Output Tokens**: ${(tokenUsage.completion_tokens || 0).toLocaleString()}\n`;
-            markdown += `- **Estimated Cost**: ${(tokenUsage.estimated_cost_usd?.total || 0).toFixed(4)}\n`;
+            markdown += `- **Estimated Cost**: $${(tokenUsage.estimated_cost_usd?.total || 0).toFixed(4)}\n`;
 
             if (tokenUsage.efficiency_metrics) {
                 const efficiency = tokenUsage.efficiency_metrics;
                 markdown += `- **Compression Ratio**: ${efficiency.compression_ratio || 0}:1\n`;
-                markdown += `- **Processing Speed**: ${(efficiency.processing_speed_words_per_sec || 0).toLocaleString()} words/sec\n`;
-                markdown += `- **Efficiency**: ${efficiency.tokens_per_word_generated || 0} tokens per generated word\n`;
+                markdown += `- **Processing Speed**: ${(efficiency.processing_speed_words_per_sec || 0).toFixed(0)} words/sec\n`;
+                markdown += `- **Efficiency**: ${(efficiency.tokens_per_word_generated || 0).toFixed(1)} tokens per generated word\n`;
             }
         }
 
         return markdown;
     }
 
+    // Methods for handling visibility without affecting state
     show() {
+        console.log('Showing summary component, isReady:', this.isReady);
         this.elements.tabContent.style.display = 'block';
+        // Don't change button state when showing - preserve existing readiness
     }
 
     hide() {
+        console.log('Hiding summary component, preserving state');
+        // Only hide the display, don't reset the component state or disable buttons
         this.elements.tabContent.style.display = 'none';
-        this.elements.generateBtn.disabled = true;
     }
 
     reset() {
+        console.log('Resetting summary component');
         this.hide();
         this.currentSummary = null;
         this.isGenerating = false;
+        this.isReady = false;
         this.elements.progressContainer.style.display = 'none';
         this.elements.resultContainer.style.display = 'none';
         this.elements.errorContainer.style.display = 'none';
         this.elements.summaryInfo.style.display = 'none';
+        // Reset button state
+        this.elements.generateBtn.disabled = true;
     }
 }

@@ -1,4 +1,4 @@
-// Enhanced Results Component with Collapsible Sections
+// Enhanced Results Component with Tab System
 class ResultsComponent {
     constructor(state, services) {
         this.state = state;
@@ -6,13 +6,16 @@ class ResultsComponent {
         this.container = document.getElementById('results-component');
         this.currentlyEditingLabel = null;
         this.currentData = null;
-        this.collapsedSections = new Set(); // Track collapsed sections
+        this.collapsedSections = new Set();
+        this.currentTab = 'transcription';
     }
 
     async init() {
         this.render();
         this.setupEventListeners();
-        // Don't load collapsed state here - will be loaded when showing results
+        // Initialize the summary component
+        this.summaryComponent = new SummaryComponent(this.state, this.services);
+        await this.summaryComponent.init();
     }
 
     render() {
@@ -103,6 +106,14 @@ class ResultsComponent {
     cacheElements() {
         this.elements = {
             results: this.container.querySelector('#results'),
+
+            // Tab elements
+            tabButtons: this.container.querySelectorAll('.tab-button'),
+            tabContents: this.container.querySelectorAll('.tab-content'),
+            analysisTab: this.container.querySelector('#analysis-tab'),
+            summaryTab: this.container.querySelector('#summary-tab'),
+
+            // Transcription elements
             transcriptionText: this.container.querySelector('#transcription-text'),
             copyTranscriptionBtn: this.container.querySelector('#copy-transcription-btn'),
 
@@ -128,6 +139,13 @@ class ResultsComponent {
     }
 
     setupEventListeners() {
+        // Tab switching
+        this.elements.tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                this.switchTab(button.dataset.tab);
+            });
+        });
+
         // Copy transcription button
         this.elements.copyTranscriptionBtn.addEventListener('click', () => {
             this.copyTranscription();
@@ -159,6 +177,30 @@ class ResultsComponent {
         document.addEventListener('speakerNameChanged', (event) => {
             this.updateSpeakerLabels(event.detail.speakerId, event.detail.newName);
         });
+    }
+
+    // Tab switching functionality
+    switchTab(tabName) {
+        this.currentTab = tabName;
+
+        // Update tab buttons
+        this.elements.tabButtons.forEach(button => {
+            button.classList.toggle('active', button.dataset.tab === tabName);
+        });
+
+        // Update tab contents
+        this.elements.tabContents.forEach(content => {
+            content.classList.toggle('active', content.dataset.tabContent === tabName);
+        });
+
+        // Handle summary component visibility without affecting its state
+        if (tabName === 'summary' && this.summaryComponent) {
+            // Only show the summary component, don't reset its state
+            this.summaryComponent.show();
+        } else if (this.summaryComponent) {
+            // Hide but preserve the component's internal state
+            this.summaryComponent.container.querySelector('#summary-tab-content').style.display = 'none';
+        }
     }
 
     // Collapsible functionality
@@ -210,8 +252,6 @@ class ResultsComponent {
 
     loadCollapsedState() {
         const saved = UIUtils.loadFromLocalStorage('parakeet-collapsed-sections', []);
-
-        // Ensure saved data is an array before creating Set
         const savedArray = Array.isArray(saved) ? saved : [];
         this.collapsedSections = new Set(savedArray);
 
@@ -249,6 +289,15 @@ class ResultsComponent {
         const isDiarization = this.state.currentMode === 'diarize' && data.diarization;
         const transcriptionData = isDiarization ? data.transcription : data;
 
+        // Show appropriate tabs
+        if (isDiarization) {
+            this.elements.analysisTab.style.display = 'block';
+            this.elements.summaryTab.style.display = 'block';
+        } else {
+            this.elements.analysisTab.style.display = 'none';
+            this.elements.summaryTab.style.display = 'none';
+        }
+
         // Display transcription
         this.displayTranscription(transcriptionData);
 
@@ -264,6 +313,11 @@ class ResultsComponent {
         // Display speaker summary if applicable
         if (isDiarization) {
             this.displaySpeakerSummary(data.diarization);
+        }
+
+        // Notify summary component
+        if (this.summaryComponent && isDiarization) {
+            this.summaryComponent.onTranscriptionComplete(data);
         }
 
         // Show results
@@ -593,6 +647,11 @@ class ResultsComponent {
                 this.currentlyEditingLabel,
                 this.currentlyEditingLabel.dataset.speaker
             );
+        }
+
+        // Hide summary component
+        if (this.summaryComponent) {
+            this.summaryComponent.hide();
         }
     }
 
