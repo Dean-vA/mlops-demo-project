@@ -222,4 +222,48 @@ class ApiService {
         });
         document.dispatchEvent(event);
     }
+
+    // D&D Session Summarization
+    async summarizeSession(requestData, progressCallback = null) {
+        try {
+            // Simulate progress updates for now (since we don't have real-time updates yet)
+            if (progressCallback) {
+                progressCallback('Sending request to AI...', 0.1);
+
+                // Simulate intermediate progress
+                const progressInterval = setInterval(() => {
+                    const currentProgress = Math.min(0.9, Math.random() * 0.8 + 0.1);
+                    progressCallback('Processing chunks...', currentProgress);
+                }, 2000);
+
+                const response = await axios.post(
+                    `${this.baseURL}/summarize`,
+                    requestData,
+                    {
+                        headers: { 'Content-Type': 'application/json' },
+                        timeout: 300000, // 5 minutes timeout for summary generation
+                    }
+                );
+
+                clearInterval(progressInterval);
+                progressCallback('Summary complete!', 1.0);
+
+                return response.data;
+            } else {
+                const response = await axios.post(
+                    `${this.baseURL}/summarize`,
+                    requestData,
+                    {
+                        headers: { 'Content-Type': 'application/json' },
+                        timeout: 300000, // 5 minutes timeout
+                    }
+                );
+
+                return response.data;
+            }
+        } catch (error) {
+            console.error('Summarization failed:', error);
+            throw error;
+        }
+    }
 }

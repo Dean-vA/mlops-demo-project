@@ -114,6 +114,7 @@ class App {
         }
     }
 
+
     async initializeComponents() {
         // Initialize all components
         this.components.audioInput = new AudioInputComponent(this.state, this.services);
@@ -122,6 +123,7 @@ class App {
         this.components.download = new DownloadComponent(this.state);
         this.components.loading = new LoadingComponent();
         this.components.results = new ResultsComponent(this.state, this.services);
+        this.components.summary = new SummaryComponent(this.state, this.services);
         this.components.error = new ErrorComponent();
         this.components.statusIndicator = new StatusIndicatorComponent();
         this.components.audioNotification = new AudioNotificationComponent();
