@@ -395,18 +395,6 @@ class ResultsComponent {
             const speakerDiv = document.createElement('div');
             speakerDiv.className = 'speaker-item';
 
-        Object.entries(diarizationData.speakers).forEach(([speakerId, segments]) => {
-            const totalDuration = segments.reduce((sum, seg) => sum + seg.duration, 0);
-
-            // Calculate percentage more accurately
-            const allSegmentsDuration = Object.values(diarizationData.speakers)
-                .flat()
-                .reduce((sum, seg) => sum + seg.duration, 0);
-            const percentage = allSegmentsDuration > 0 ? (totalDuration / allSegmentsDuration * 100) : 0;
-
-            const speakerDiv = document.createElement('div');
-            speakerDiv.className = 'speaker-item';
-
             speakerDiv.innerHTML = `
                 <div class="speaker-info">
                     <span class="speaker-label ${UIUtils.getSpeakerClass(speakerId)}" data-speaker="${speakerId}">
