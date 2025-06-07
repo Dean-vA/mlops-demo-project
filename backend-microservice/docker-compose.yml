@@ -8,6 +8,8 @@ services:
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
       - CUDA_VISIBLE_DEVICES=0
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - HUGGINGFACE_HUB_TOKEN=${HUGGINGFACE_HUB_TOKEN}
     deploy:
       resources:
         reservations:
