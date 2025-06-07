@@ -253,18 +253,23 @@ def prepare_dataset_from_dataframe(df: pd.DataFrame, tokenizer: AutoTokenizer) -
     return tokenized_dataset
 
 
-def setup_training_args(output_dir: str, num_epochs: int = 10) -> TrainingArguments:
+def setup_training_args(output_dir: str, num_epochs: int = 10, has_validation: bool = False) -> TrainingArguments:
     """
     Configure training arguments with minimal parameters to avoid Azure ML limits.
 
     Args:
         output_dir: Directory to save checkpoints
         num_epochs: Number of training epochs
+        has_validation: Whether validation data is provided
 
     Returns:
         TrainingArguments: Configured training arguments
     """
     logger.info("Setting up training arguments...")
+
+    # Configure evaluation strategy based on validation data
+    eval_strategy = "epoch" if has_validation else "no"
+    eval_steps = 1 if has_validation else None
 
     training_args = TrainingArguments(
         output_dir=output_dir,
@@ -284,9 +289,15 @@ def setup_training_args(output_dir: str, num_epochs: int = 10) -> TrainingArgume
         remove_unused_columns=False,
         report_to=[],  # IMPORTANT: Empty list disables all integrations including MLflow
         push_to_hub=False,
+        # Validation settings
+        evaluation_strategy=eval_strategy,
+        eval_steps=eval_steps,
+        per_device_eval_batch_size=1,
         # Disable MLflow integration at the trainer level
         disable_tqdm=False,
-        load_best_model_at_end=False,
+        load_best_model_at_end=has_validation,  # Load best model if we have validation
+        metric_for_best_model="eval_loss" if has_validation else None,
+        greater_is_better=False if has_validation else None,
     )
 
     logger.info("Training arguments configured:")
@@ -295,6 +306,7 @@ def setup_training_args(output_dir: str, num_epochs: int = 10) -> TrainingArgume
     logger.info(f"  - Gradient accumulation: {training_args.gradient_accumulation_steps}")
     logger.info(f"  - Effective batch size: {training_args.per_device_train_batch_size * training_args.gradient_accumulation_steps}")
     logger.info(f"  - Learning rate: {training_args.learning_rate}")
+    logger.info(f"  - Evaluation strategy: {training_args.evaluation_strategy}")
     logger.info("  - MLflow auto-integration: DISABLED")
 
     return training_args
@@ -322,14 +334,17 @@ def create_data_collator(tokenizer: AutoTokenizer) -> DataCollatorForLanguageMod
     return data_collator
 
 
-def create_trainer(model: AutoModelForCausalLM, tokenizer: AutoTokenizer, dataset: Dataset, output_dir: str, num_epochs: int = 10) -> Trainer:
+def create_trainer(
+    model: AutoModelForCausalLM, tokenizer: AutoTokenizer, train_dataset: Dataset, val_dataset: Dataset, output_dir: str, num_epochs: int = 10
+) -> Trainer:
     """
     Create and configure the Trainer.
 
     Args:
         model: The model to train
         tokenizer: The tokenizer
-        dataset: Training dataset
+        train_dataset: Training dataset
+        val_dataset: Validation dataset (optional)
         output_dir: Output directory for checkpoints
         num_epochs: Number of training epochs
 
@@ -339,7 +354,7 @@ def create_trainer(model: AutoModelForCausalLM, tokenizer: AutoTokenizer, datase
     logger.info("Creating trainer...")
 
     # Setup training arguments
-    training_args = setup_training_args(output_dir, num_epochs)
+    training_args = setup_training_args(output_dir, num_epochs, has_validation=val_dataset is not None)
 
     # Create data collator
     data_collator = create_data_collator(tokenizer)
@@ -348,12 +363,16 @@ def create_trainer(model: AutoModelForCausalLM, tokenizer: AutoTokenizer, datase
     trainer = Trainer(
         model=model,
         args=training_args,
-        train_dataset=dataset,
+        train_dataset=train_dataset,
+        eval_dataset=val_dataset,  # Add validation dataset
         data_collator=data_collator,
         processing_class=tokenizer,  # Use processing_class instead of tokenizer
     )
 
     logger.info("Trainer created successfully")
+    if val_dataset:
+        logger.info(f"Validation dataset configured with {len(val_dataset)} samples")
+
     return trainer
 
 
