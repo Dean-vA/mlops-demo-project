@@ -10,6 +10,7 @@ class AppState {
         this.currentAudio = null;
         this.currentlyPlayingSegment = null;
         this.currentlyEditingLabel = null;
+        this.components = {}; // Add components reference
 
         // Event emitter for state changes
         this.listeners = {};
@@ -88,88 +89,171 @@ class App {
         this.state = new AppState();
         this.components = {};
         this.services = {};
-
-        this.init();
+        this.initializationComplete = false;
     }
 
     async init() {
         try {
-            // Initialize services
+            console.log('🚀 Initializing Parakeet STT Application...');
+
+            // Check if required elements exist
+            const requiredElements = [
+                'audio-input-component',
+                'settings-component',
+                'action-buttons-component',
+                'download-component',
+                'loading-component',
+                'results-component',
+                'error-component',
+                'status-indicator-component',
+                'audio-notification-component'
+            ];
+
+            const missingElements = requiredElements.filter(id => !document.getElementById(id));
+
+            if (missingElements.length > 0) {
+                throw new Error(`Missing required DOM elements: ${missingElements.join(', ')}`);
+            }
+
+            // Initialize services first
+            console.log('📡 Initializing services...');
             this.services.api = new ApiService();
             this.services.audio = new AudioService();
 
-            // Initialize components
+            // Initialize components with error handling
+            console.log('🎨 Initializing components...');
             await this.initializeComponents();
 
             // Set up state listeners
             this.setupStateListeners();
 
+            // Store components reference in state for cross-component communication
+            this.state.components = this.components;
+
             // Start health monitoring
+            console.log('🏥 Starting API health monitoring...');
             this.services.api.startHealthMonitoring();
 
-            console.log('🚀 Parakeet STT Application initialized successfully');
+            this.initializationComplete = true;
+            console.log('✅ Parakeet STT Application initialized successfully');
+
         } catch (error) {
             console.error('❌ Failed to initialize application:', error);
-            this.components.error?.show('Failed to initialize application: ' + error.message);
+
+            // Show error in a simple way if components aren't ready
+            const errorDiv = document.createElement('div');
+            errorDiv.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #f8d7da;
+                color: #721c24;
+                padding: 15px;
+                border-radius: 10px;
+                border-left: 4px solid #dc3545;
+                max-width: 400px;
+                z-index: 10000;
+            `;
+            errorDiv.innerHTML = `
+                <strong>Initialization Error:</strong><br>
+                ${error.message}<br>
+                <small>Check browser console for details.</small>
+            `;
+            document.body.appendChild(errorDiv);
+
+            // Try to show error through component if available
+            if (this.components.error) {
+                this.components.error.show('Failed to initialize application: ' + error.message);
+            }
         }
     }
 
-
     async initializeComponents() {
-        // Initialize all components
-        this.components.audioInput = new AudioInputComponent(this.state, this.services);
-        this.components.settings = new SettingsComponent(this.state);
-        this.components.actionButtons = new ActionButtonsComponent(this.state, this.services);
-        this.components.download = new DownloadComponent(this.state);
-        this.components.loading = new LoadingComponent();
-        this.components.results = new ResultsComponent(this.state, this.services);
-        this.components.summary = new SummaryComponent(this.state, this.services);
-        this.components.error = new ErrorComponent();
-        this.components.statusIndicator = new StatusIndicatorComponent();
-        this.components.audioNotification = new AudioNotificationComponent();
+        const componentConfigs = [
+            { name: 'audioInput', class: AudioInputComponent, args: [this.state, this.services] },
+            { name: 'settings', class: SettingsComponent, args: [this.state] },
+            { name: 'actionButtons', class: ActionButtonsComponent, args: [this.state, this.services] },
+            { name: 'download', class: DownloadComponent, args: [this.state] },
+            { name: 'loading', class: LoadingComponent, args: [] },
+            { name: 'results', class: ResultsComponent, args: [this.state, this.services] },
+            { name: 'error', class: ErrorComponent, args: [] },
+            { name: 'statusIndicator', class: StatusIndicatorComponent, args: [] },
+            { name: 'audioNotification', class: AudioNotificationComponent, args: [] }
+        ];
 
-        // Initialize all components
-        await Promise.all(
-            Object.values(this.components).map(component =>
-                component.init ? component.init() : Promise.resolve()
-            )
-        );
+        // Initialize components one by one with error handling
+        for (const config of componentConfigs) {
+            try {
+                console.log(`  - Initializing ${config.name}...`);
+
+                // Check if class exists
+                if (typeof config.class !== 'function') {
+                    console.error(`⚠️ Component class ${config.class.name || 'unknown'} not found`);
+                    continue;
+                }
+
+                // Create component instance
+                this.components[config.name] = new config.class(...config.args);
+
+                // Initialize if init method exists
+                if (typeof this.components[config.name].init === 'function') {
+                    await this.components[config.name].init();
+                }
+
+                console.log(`  ✅ ${config.name} initialized`);
+
+            } catch (error) {
+                console.error(`  ❌ Failed to initialize ${config.name}:`, error);
+                // Continue with other components rather than failing completely
+                continue;
+            }
+        }
+
+        console.log('🎨 Component initialization completed');
     }
 
     setupStateListeners() {
         // Listen to state changes and update UI accordingly
         this.state.on('fileSelected', (file) => {
-            this.components.actionButtons.enable();
-        });
-
-        this.state.on('audioRecorded', (blob) => {
-            this.components.actionButtons.enable();
-        });
-
-        this.state.on('processingStateChanged', (isProcessing) => {
-            if (isProcessing) {
-                this.components.loading.show();
-                this.components.actionButtons.disable();
-                this.components.results.hide();
-                this.components.download.hide();
-            } else {
-                this.components.loading.hide();
+            if (this.components.actionButtons) {
                 this.components.actionButtons.enable();
             }
         });
 
+        this.state.on('audioRecorded', (blob) => {
+            if (this.components.actionButtons) {
+                this.components.actionButtons.enable();
+            }
+        });
+
+        this.state.on('processingStateChanged', (isProcessing) => {
+            if (isProcessing) {
+                if (this.components.loading) this.components.loading.show();
+                if (this.components.actionButtons) this.components.actionButtons.disable();
+                if (this.components.results) this.components.results.hide();
+                if (this.components.download) this.components.download.hide();
+            } else {
+                if (this.components.loading) this.components.loading.hide();
+                if (this.components.actionButtons) this.components.actionButtons.enable();
+            }
+        });
+
         this.state.on('transcriptionComplete', (data) => {
-            this.components.results.display(data);
-            this.components.download.show();
+            if (this.components.results) {
+                this.components.results.display(data);
+            }
+            if (this.components.download) {
+                this.components.download.show();
+            }
         });
 
         this.state.on('stateReset', () => {
-            this.components.results.hide();
-            this.components.download.hide();
-            this.components.error.hide();
-            this.components.loading.hide();
+            if (this.components.results) this.components.results.hide();
+            if (this.components.download) this.components.download.hide();
+            if (this.components.error) this.components.error.hide();
+            if (this.components.loading) this.components.loading.hide();
 
-            if (!this.state.hasAudioInput()) {
+            if (!this.state.hasAudioInput() && this.components.actionButtons) {
                 this.components.actionButtons.disable();
             }
         });
@@ -177,6 +261,11 @@ class App {
 
     // Public methods for component communication
     async transcribe(mode = 'transcribe') {
+        if (!this.initializationComplete) {
+            console.warn('Application not fully initialized yet');
+            return;
+        }
+
         if (!this.state.hasAudioInput() || this.state.isProcessing) {
             return;
         }
@@ -186,7 +275,7 @@ class App {
             this.state.currentMode = mode;
 
             const audioInput = this.state.getAudioInput();
-            const settings = this.components.settings.getSettings();
+            const settings = this.components.settings ? this.components.settings.getSettings() : {};
 
             let result;
             if (mode === 'diarize') {
@@ -196,11 +285,15 @@ class App {
             }
 
             this.state.setTranscriptionData(result);
-            this.components.error.hide();
+            if (this.components.error) {
+                this.components.error.hide();
+            }
 
         } catch (error) {
             console.error('Transcription error:', error);
-            this.components.error.show(this.formatError(error));
+            if (this.components.error) {
+                this.components.error.show(this.formatError(error));
+            }
         } finally {
             this.state.setProcessing(false);
         }
@@ -223,5 +316,18 @@ class App {
 
 // Initialize the application when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    window.app = new App();
+    // Add a small delay to ensure all resources are loaded
+    setTimeout(() => {
+        window.app = new App();
+        window.app.init();
+    }, 100);
+});
+
+// Handle unhandled errors
+window.addEventListener('error', (event) => {
+    console.error('Unhandled error:', event.error);
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+    console.error('Unhandled promise rejection:', event.reason);
 });
