@@ -1,53 +1,60 @@
-// Download Component - Handles transcript downloads in multiple formats
+// Enhanced Download Component with Collapsible Functionality
 class DownloadComponent {
     constructor(state) {
         this.state = state;
         this.container = document.getElementById('download-component');
+        this.isCollapsed = false;
     }
 
     async init() {
         this.render();
         this.setupEventListeners();
+        // Load collapsed state will be called when showing the component
     }
 
     render() {
         this.container.innerHTML = `
-            <div class="download-section" id="download-section" style="display: none;">
-                <h3>📥 Download Transcript</h3>
-                <p>Download your transcript in different formats</p>
-                <div class="download-buttons">
-                    <button class="download-btn" id="download-txt-btn">
-                        📄 Plain Text (.txt)
-                    </button>
-                    <button class="download-btn" id="download-csv-btn">
-                        📊 CSV with Speakers (.csv)
-                    </button>
-                    <button class="download-btn" id="download-json-btn">
-                        🔧 JSON Data (.json)
-                    </button>
-                    <button class="download-btn" id="download-srt-btn">
-                        🎬 Subtitle File (.srt)
-                    </button>
-                </div>
+            <div class="download-section collapsible-section" id="download-section" data-section="download" style="display: none;">
+                <h3 class="collapsible-header" data-target="download">
+                    <span class="collapse-indicator">▼</span>
+                    📥 Download Transcript
+                </h3>
+                <div class="collapsible-content" data-content="download">
+                    <p>Download your transcript in different formats</p>
+                    <div class="download-buttons">
+                        <button class="download-btn" id="download-txt-btn">
+                            📄 Plain Text (.txt)
+                        </button>
+                        <button class="download-btn" id="download-csv-btn">
+                            📊 CSV with Speakers (.csv)
+                        </button>
+                        <button class="download-btn" id="download-json-btn">
+                            🔧 JSON Data (.json)
+                        </button>
+                        <button class="download-btn" id="download-srt-btn">
+                            🎬 Subtitle File (.srt)
+                        </button>
+                    </div>
 
-                <div class="download-options" style="margin-top: 20px;">
-                    <details>
-                        <summary style="cursor: pointer; font-weight: 600;">📋 Advanced Options</summary>
-                        <div style="padding: 15px; background: #f8f9fa; border-radius: 8px; margin-top: 10px;">
-                            <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
-                                <input type="checkbox" id="include-timestamps" checked>
-                                Include timestamps in text format
-                            </label>
-                            <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
-                                <input type="checkbox" id="include-confidence" checked>
-                                Include confidence scores (where available)
-                            </label>
-                            <label style="display: flex; align-items: center; gap: 8px;">
-                                <input type="checkbox" id="use-edited-names" checked>
-                                Use edited speaker names
-                            </label>
-                        </div>
-                    </details>
+                    <div class="download-options" style="margin-top: 20px;">
+                        <details>
+                            <summary style="cursor: pointer; font-weight: 600;">📋 Advanced Options</summary>
+                            <div style="padding: 15px; background: rgba(55, 55, 55, 0.95); border-radius: 8px; margin-top: 10px; border: 1px solid rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.9);">
+                                <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; color: rgba(255, 255, 255, 0.8); font-size: 0.9rem;">
+                                    <input type="checkbox" id="include-timestamps" checked style="accent-color: #28a745;">
+                                    Include timestamps in text format
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; color: rgba(255, 255, 255, 0.8); font-size: 0.9rem;">
+                                    <input type="checkbox" id="include-confidence" checked style="accent-color: #28a745;">
+                                    Include confidence scores (where available)
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 8px; color: rgba(255, 255, 255, 0.8); font-size: 0.9rem;">
+                                    <input type="checkbox" id="use-edited-names" checked style="accent-color: #28a745;">
+                                    Use edited speaker names
+                                </label>
+                            </div>
+                        </details>
+                    </div>
                 </div>
             </div>
         `;
@@ -58,6 +65,10 @@ class DownloadComponent {
     cacheElements() {
         this.elements = {
             downloadSection: this.container.querySelector('#download-section'),
+            collapsibleHeader: this.container.querySelector('.collapsible-header'),
+            collapsibleContent: this.container.querySelector('.collapsible-content'),
+            collapseIndicator: this.container.querySelector('.collapse-indicator'),
+
             txtBtn: this.container.querySelector('#download-txt-btn'),
             csvBtn: this.container.querySelector('#download-csv-btn'),
             jsonBtn: this.container.querySelector('#download-json-btn'),
@@ -71,10 +82,68 @@ class DownloadComponent {
     }
 
     setupEventListeners() {
+        // Collapsible header
+        this.elements.collapsibleHeader.addEventListener('click', () => {
+            this.toggleCollapse();
+        });
+
+        // Download buttons
         this.elements.txtBtn.addEventListener('click', () => this.downloadTranscript('txt'));
         this.elements.csvBtn.addEventListener('click', () => this.downloadTranscript('csv'));
         this.elements.jsonBtn.addEventListener('click', () => this.downloadTranscript('json'));
         this.elements.srtBtn.addEventListener('click', () => this.downloadTranscript('srt'));
+    }
+
+    toggleCollapse() {
+        this.isCollapsed = !this.isCollapsed;
+
+        if (this.isCollapsed) {
+            // Collapse
+            this.elements.downloadSection.classList.add('collapsed');
+            this.elements.collapsibleContent.style.maxHeight = this.elements.collapsibleContent.scrollHeight + 'px';
+
+            requestAnimationFrame(() => {
+                this.elements.collapsibleContent.style.maxHeight = '0px';
+            });
+            this.elements.collapseIndicator.textContent = '▶';
+        } else {
+            // Expand
+            this.elements.downloadSection.classList.remove('collapsed');
+            this.elements.collapsibleContent.style.maxHeight = this.elements.collapsibleContent.scrollHeight + 'px';
+            this.elements.collapseIndicator.textContent = '▼';
+
+            // Reset max-height after transition
+            setTimeout(() => {
+                if (!this.isCollapsed) {
+                    this.elements.collapsibleContent.style.maxHeight = 'none';
+                }
+            }, 300);
+        }
+
+        this.saveCollapsedState();
+    }
+
+    saveCollapsedState() {
+        try {
+            UIUtils.saveToLocalStorage('parakeet-download-collapsed', this.isCollapsed);
+        } catch (error) {
+            console.warn('Failed to save download collapsed state:', error);
+        }
+    }
+
+    loadCollapsedState() {
+        try {
+            this.isCollapsed = UIUtils.loadFromLocalStorage('parakeet-download-collapsed', false);
+
+            if (this.isCollapsed && this.elements.downloadSection) {
+                this.elements.downloadSection.classList.add('collapsed');
+                this.elements.collapsibleContent.style.maxHeight = '0px';
+                this.elements.collapseIndicator.textContent = '▶';
+            }
+        } catch (error) {
+            console.warn('Failed to load download collapsed state:', error);
+            this.isCollapsed = false;
+        }
     }
 
     downloadTranscript(format) {
@@ -373,6 +442,9 @@ class DownloadComponent {
     show() {
         this.elements.downloadSection.style.display = 'block';
         UIUtils.slideDown(this.elements.downloadSection);
+
+        // Apply saved collapsed state
+        this.loadCollapsedState();
     }
 
     hide() {
