@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 from typing import Any, Dict, Tuple
 
+import dotenv
 import numpy as np
 import pandas as pd
 import torch
@@ -31,6 +32,9 @@ logger = logging.getLogger(__name__)
 # Model configuration
 MODEL_NAME = "meta-llama/Llama-3.2-1B-Instruct"
 
+# Load environment variables from .env file
+dotenv.load_dotenv()
+
 
 def setup_model_and_tokenizer() -> Tuple[AutoModelForCausalLM, AutoTokenizer]:
     """
@@ -48,6 +52,8 @@ def setup_model_and_tokenizer() -> Tuple[AutoModelForCausalLM, AutoTokenizer]:
 
     # Load tokenizer
     logger.info("Loading tokenizer...")
+    # Set longer timeout for huggingface downloads
+    os.environ["HF_HUB_DOWNLOAD_TIMEOUT"] = "300"  # 5 minutes
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, token=hf_token)
     tokenizer.pad_token = tokenizer.eos_token
     logger.info("Tokenizer loaded successfully")
@@ -153,11 +159,14 @@ def tokenize_function(examples: Dict, tokenizer: AutoTokenizer, max_length: int 
     Returns:
         Tokenized examples
     """
-    # Create full prompts
-    prompts = [create_training_prompt(inp, target) for inp, target in zip(examples["input_text"], examples["target_summary"])]
+    # Create full prompts - handle both single examples and batches
+    if isinstance(examples["input_text"], list):
+        prompts = [create_training_prompt(inp, target) for inp, target in zip(examples["input_text"], examples["target_summary"])]
+    else:
+        prompts = [create_training_prompt(examples["input_text"], examples["target_summary"])]
 
-    # Tokenize with truncation
-    tokenized = tokenizer(prompts, truncation=True, padding=True, max_length=max_length, return_tensors=None)
+    # Tokenize with proper parameters
+    tokenized = tokenizer(prompts, truncation=True, padding=True, max_length=max_length, return_tensors=None)  # Important: return Python lists, not tensors
 
     # For causal LM, labels are the same as input_ids
     tokenized["labels"] = tokenized["input_ids"].copy()
@@ -184,28 +193,62 @@ def prepare_dataset_from_dataframe(df: pd.DataFrame, tokenizer: AutoTokenizer) -
     if missing_cols:
         raise ValueError(f"DataFrame missing required columns: {missing_cols}")
 
+    # Ensure data types are correct and clean
+    df_clean = df.copy()
+    df_clean["input_text"] = df_clean["input_text"].astype(str).str.strip()
+    df_clean["target_summary"] = df_clean["target_summary"].astype(str).str.strip()
+
+    # Remove any rows with empty strings
+    df_clean = df_clean[
+        (df_clean["input_text"] != "") & (df_clean["target_summary"] != "") & (df_clean["input_text"].notna()) & (df_clean["target_summary"].notna())
+    ].reset_index(drop=True)
+
+    logger.info(f"Cleaned dataset: {len(df_clean)} examples")
+
     # Convert DataFrame to HuggingFace Dataset
-    dataset = Dataset.from_pandas(df)
+    dataset = Dataset.from_pandas(df_clean[["input_text", "target_summary"]])
     logger.info(f"Created dataset with {len(dataset)} examples")
 
-    # Tokenize dataset
+    # Debug: Check data structure before tokenization
+    logger.info("Sample data before tokenization:")
+    logger.info(f"Input type: {type(dataset[0]['input_text'])}")
+    logger.info(f"Target type: {type(dataset[0]['target_summary'])}")
+    logger.info(f"Input preview: {dataset[0]['input_text'][:100]}...")
+
+    # Tokenize dataset with error handling
     logger.info("Tokenizing dataset...")
-    tokenized_dataset = dataset.map(
-        lambda examples: tokenize_function(examples, tokenizer),
-        batched=True,
-        remove_columns=[col for col in dataset.column_names if col not in ["input_text", "target_summary"]],
-    )
+    try:
+        tokenized_dataset = dataset.map(
+            lambda examples: tokenize_function(examples, tokenizer),
+            batched=True,
+            batch_size=1,  # Process one at a time to debug issues
+            remove_columns=dataset.column_names,  # Remove original columns
+        )
+    except Exception as e:
+        logger.error(f"Tokenization failed: {e}")
+        # Try with single example to debug
+        logger.info("Attempting single example tokenization for debugging...")
+        try:
+            single_example = {"input_text": [dataset[0]["input_text"]], "target_summary": [dataset[0]["target_summary"]]}
+            result = tokenize_function(single_example, tokenizer)
+            logger.info(f"Single tokenization successful. Result keys: {result.keys()}")
+            logger.info(f"Input_ids type: {type(result['input_ids'])}")
+            logger.info(f"Input_ids length: {len(result['input_ids'])}")
+        except Exception as debug_e:
+            logger.error(f"Single example tokenization also failed: {debug_e}")
+        raise
 
     # Log dataset statistics
-    avg_length = np.mean([len(x) for x in tokenized_dataset["input_ids"]])
-    max_length = max([len(x) for x in tokenized_dataset["input_ids"]])
-    min_length = min([len(x) for x in tokenized_dataset["input_ids"]])
+    if len(tokenized_dataset) > 0:
+        avg_length = np.mean([len(x) for x in tokenized_dataset["input_ids"]])
+        max_length = max([len(x) for x in tokenized_dataset["input_ids"]])
+        min_length = min([len(x) for x in tokenized_dataset["input_ids"]])
 
-    logger.info("Dataset tokenization complete:")
-    logger.info(f"  - Total examples: {len(tokenized_dataset)}")
-    logger.info(f"  - Average sequence length: {avg_length:.0f}")
-    logger.info(f"  - Max sequence length: {max_length}")
-    logger.info(f"  - Min sequence length: {min_length}")
+        logger.info("Dataset tokenization complete:")
+        logger.info(f"  - Total examples: {len(tokenized_dataset)}")
+        logger.info(f"  - Average sequence length: {avg_length:.0f}")
+        logger.info(f"  - Max sequence length: {max_length}")
+        logger.info(f"  - Min sequence length: {min_length}")
 
     return tokenized_dataset
 
@@ -226,8 +269,8 @@ def setup_training_args(output_dir: str, num_epochs: int = 10) -> TrainingArgume
     training_args = TrainingArguments(
         output_dir=output_dir,
         num_train_epochs=num_epochs,  # More epochs for small dataset
-        per_device_train_batch_size=2,  # Small batch due to long sequences
-        gradient_accumulation_steps=4,  # Effective batch size of 8
+        per_device_train_batch_size=1,  # Reduced batch size to avoid issues
+        gradient_accumulation_steps=8,  # Maintain effective batch size
         learning_rate=2e-4,  # Standard LoRA learning rate
         weight_decay=0.01,
         logging_steps=1,  # Log every step for small dataset
@@ -237,6 +280,7 @@ def setup_training_args(output_dir: str, num_epochs: int = 10) -> TrainingArgume
         fp16=False,
         bf16=True,
         dataloader_num_workers=0,  # Avoid multiprocessing issues
+        dataloader_drop_last=False,  # Don't drop last batch for small dataset
         remove_unused_columns=False,
         report_to=None,  # Disable wandb/tensorboard
         push_to_hub=False,  # Don't push to HuggingFace Hub
@@ -268,6 +312,7 @@ def create_data_collator(tokenizer: AutoTokenizer) -> DataCollatorForLanguageMod
         tokenizer=tokenizer,
         mlm=False,  # Causal LM, not masked LM
         pad_to_multiple_of=8,  # Pad to multiple of 8 for better performance
+        return_tensors="pt",  # Ensure tensors are returned
     )
 
     return data_collator
@@ -301,7 +346,7 @@ def create_trainer(model: AutoModelForCausalLM, tokenizer: AutoTokenizer, datase
         args=training_args,
         train_dataset=dataset,
         data_collator=data_collator,
-        tokenizer=tokenizer,
+        processing_class=tokenizer,  # Use processing_class instead of tokenizer
     )
 
     logger.info("Trainer created successfully")

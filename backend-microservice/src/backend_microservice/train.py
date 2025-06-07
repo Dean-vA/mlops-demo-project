@@ -2,6 +2,9 @@
 import argparse
 import logging
 
+# MLflow imports
+import mlflow
+import mlflow.pytorch
 from gpu_utils import get_device
 from load_data import load_data_from_uri, prepare_training_dataframe
 from model import (
@@ -34,7 +37,7 @@ def train_model(model, tokenizer, dataset, output_dir: str, num_epochs: int = 10
 
     logger.info(f"Training {len(dataset)} samples for {num_epochs} epochs")
 
-    # Start training
+    # Start training - autolog will handle everything automatically
     logger.info("Starting training...")
     training_output = trainer.train()
 
@@ -54,44 +57,53 @@ def train(use_uri: bool, data_path: str, model_path: str, num_epochs: int = 10):
         model_path (str): Path to save the trained model.
         num_epochs (int): Number of training epochs.
     """
-    # Check GPU availability
-    device = get_device()
-    logger.info(f"Using device: {device}")
+    # Enable MLflow autolog - this handles everything automatically!
+    mlflow.pytorch.autolog(
+        log_models=True,  # Log the model
+        log_datasets=True,  # Log dataset info
+        disable=False,  # Enable autolog
+        exclusive=False,  # Allow manual logging too
+        disable_for_unsupported_versions=False,
+        silent=False,  # Show autolog messages
+    )
 
-    # Load and prepare data
-    if use_uri:
-        logger.info("Loading data from URI (Azure ML data asset)")
-        df = load_data_from_uri(data_path)
-        training_df = prepare_training_dataframe(df)
-    else:
-        raise NotImplementedError("Local data loading not implemented yet")
+    # Start MLflow run
+    with mlflow.start_run():
+        logger.info("MLflow autolog enabled - automatic tracking active")
 
-    if len(training_df) == 0:
-        raise ValueError("No training data found")
-    else:
-        logger.info(f"Loaded {len(training_df)} training samples")
-        logger.info(f"Columns: {list(training_df.columns)}")
+        # Check GPU availability
+        device = get_device()
+        logger.info(f"Using device: {device}")
 
-    # # Placeholder for training logic
-    # logging.info(f"Training model with data from {data_path}...")
+        # Load and prepare data
+        if use_uri:
+            logger.info("Loading data from URI (Azure ML data asset)")
+            df = load_data_from_uri(data_path)
+            training_df = prepare_training_dataframe(df)
+        else:
+            raise NotImplementedError("Local data loading not implemented yet")
 
-    # # Save the trained model
-    # logging.info(f"Saving model to {model_path}...")
+        if len(training_df) == 0:
+            raise ValueError("No training data found")
+        else:
+            logger.info(f"Loaded {len(training_df)} training samples")
+            logger.info(f"Columns: {list(training_df.columns)}")
 
-    # Setup model and tokenizer
-    model, tokenizer = setup_model_and_tokenizer()
+        # Setup model and tokenizer
+        model, tokenizer = setup_model_and_tokenizer()
 
-    # Prepare dataset directly from DataFrame
-    dataset = prepare_dataset_from_dataframe(training_df, tokenizer)
+        # Prepare dataset directly from DataFrame
+        dataset = prepare_dataset_from_dataframe(training_df, tokenizer)
 
-    # Train model
-    trainer, training_output = train_model(model, tokenizer, dataset, model_path, num_epochs)
+        # Train model - autolog captures everything automatically
+        trainer, training_output = train_model(model, tokenizer, dataset, model_path, num_epochs)
 
-    # Save model
-    save_model(trainer, tokenizer, model_path)
+        # Save model
+        save_model(trainer, tokenizer, model_path)
 
-    logger.info("Training pipeline completed successfully!")
-    return trainer, training_output
+        logger.info("Training pipeline completed successfully!")
+        logger.info("Check Azure ML Studio for automatically logged metrics, parameters, and model!")
+        return trainer, training_output
 
 
 if __name__ == "__main__":
