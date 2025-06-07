@@ -289,8 +289,8 @@ def setup_training_args(output_dir: str, num_epochs: int = 10, has_validation: b
         remove_unused_columns=False,
         report_to=[],  # IMPORTANT: Empty list disables all integrations including MLflow
         push_to_hub=False,
-        # Validation settings
-        evaluation_strategy=eval_strategy,
+        # Validation settings - using eval_strategy for compatibility with older transformers
+        eval_strategy=eval_strategy,  # Changed from evaluation_strategy
         eval_steps=eval_steps,
         per_device_eval_batch_size=1,
         # Disable MLflow integration at the trainer level
@@ -306,7 +306,7 @@ def setup_training_args(output_dir: str, num_epochs: int = 10, has_validation: b
     logger.info(f"  - Gradient accumulation: {training_args.gradient_accumulation_steps}")
     logger.info(f"  - Effective batch size: {training_args.per_device_train_batch_size * training_args.gradient_accumulation_steps}")
     logger.info(f"  - Learning rate: {training_args.learning_rate}")
-    logger.info(f"  - Evaluation strategy: {training_args.evaluation_strategy}")
+    logger.info(f"  - Evaluation strategy: {training_args.eval_strategy}")
     logger.info("  - MLflow auto-integration: DISABLED")
 
     return training_args
