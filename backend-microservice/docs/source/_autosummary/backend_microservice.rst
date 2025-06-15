@@ -10,5 +10,8 @@
    :toctree:
    :recursive:
 
+   audio_utils
+   diarization
+   gpu_utils
    main
    transcription

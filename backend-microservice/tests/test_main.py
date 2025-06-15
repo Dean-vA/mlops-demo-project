@@ -20,7 +20,7 @@ def test_root_endpoint(client):
     response = client.get("/")
 
     assert response.status_code == 200
-    assert response.json() == {"message": "Welcome to the Parakeet STT API!"}
+    assert response.json() == {"message": "Welcome to the Parakeet STT API with Speaker Diarization!"}
 
 
 @patch("backend_microservice.main.is_model_loaded")

@@ -9,10 +9,3 @@
 - Implement speaker identification to classify speakers in the audio file.
 - Speaker IDs should be linked to speaker names.
 
-
-# Azure
-
-- Data to blobstore - Just the audio file
-- Data to Data Asset - diarised transcripts, summaries
-- Environment Creation
-- Training Job
