@@ -11,8 +11,14 @@
    :recursive:
 
    audio_utils
+   azure_utils
    diarization
+   evaluate
    gpu_utils
+   load_data
    main
+   model
+   register_model
    summarization
+   train
    transcription

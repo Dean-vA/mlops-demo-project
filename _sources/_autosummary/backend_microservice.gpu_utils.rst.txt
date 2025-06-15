@@ -10,6 +10,7 @@ backend\_microservice.gpu\_utils
    
       get_device
       get_gpu_info
+      is_torch_available
    
    .. rubric:: Classes
 
