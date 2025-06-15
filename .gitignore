@@ -184,3 +184,5 @@ cython_debug/
 *.csv
 *.json
 *.txt
+
+/notebooks/downloaded_model
