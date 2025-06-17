@@ -44,7 +44,8 @@ autosummary_imported_members = True
 autodoc_default_options = {
     "members": True,
     "undoc-members": True,
-    "private-members": True,
+    "private-members": False,
+    "show-inheritance": True,
 }
 
 templates_path = ["_templates"]
@@ -67,4 +68,13 @@ autodoc_mock_imports = [
     "nemo.collections.asr",
     "fastapi",
     "uvicorn",
+    "psutil",
+    "pydub",
+    "omegaconf",
+    "transformers",
+    "accelerate",
+    "scikit-learn",
+    "scipy",
+    "librosa",
+    "pyannote-metrics",
 ]

@@ -1,0 +1,537 @@
+/* Responsive Design */
+
+/* Tablet Styles */
+@media (max-width: 1024px) {
+    .container {
+        max-width: 95%;
+    }
+
+    .card {
+        padding: 30px;
+    }
+
+    .header h1 {
+        font-size: 2.5rem;
+    }
+
+    .stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Mobile Styles */
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+
+    .header h1 {
+        font-size: 2rem;
+    }
+
+    .header p {
+        font-size: 1rem;
+    }
+
+    .card {
+        padding: 20px;
+        border-radius: 15px;
+    }
+
+    /* Tab Buttons */
+    .recording-tabs {
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .tab-button {
+        padding: 12px 20px;
+        border-radius: 8px;
+        border-bottom: none;
+        border-left: 3px solid transparent;
+    }
+
+    .tab-button.active {
+        border-left-color: #667eea;
+        border-bottom-color: transparent;
+        background: rgba(102, 126, 234, 0.1);
+    }
+
+    /* Upload/Mic Areas */
+    .upload-area,
+    .mic-area {
+        padding: 40px 15px;
+    }
+
+    .upload-icon,
+    .mic-icon {
+        font-size: 3rem;
+    }
+
+    .upload-text,
+    .mic-text {
+        font-size: 1rem;
+    }
+
+    /* Controls */
+    .controls {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+
+    /* Action Buttons */
+    .transcribe-buttons {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .transcribe-btn {
+        padding: 12px 30px;
+        font-size: 1rem;
+    }
+
+    /* Statistics */
+    .stats {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    .stat-item {
+        padding: 12px;
+    }
+
+    .stat-value {
+        font-size: 1.3rem;
+    }
+
+    /* Segments */
+    .segment-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .segment-header > div:first-child {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .play-button {
+        width: 40px;
+        height: 30px;
+        font-size: 12px;
+    }
+
+    .segment-time {
+        font-size: 0.8rem;
+        padding: 3px 10px;
+    }
+
+    /* Download Buttons */
+    .download-buttons {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .download-btn {
+        justify-content: center;
+        padding: 10px 20px;
+    }
+
+    /* Speaker Labels */
+    .speaker-label {
+        font-size: 0.8rem;
+        padding: 3px 10px;
+    }
+
+    /* Timestamps */
+    .timestamp-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+
+    /* Status Indicator */
+    .status-indicator {
+        position: relative;
+        top: auto;
+        right: auto;
+        margin-bottom: 20px;
+        display: block;
+        text-align: center;
+    }
+
+    /* Audio Notification */
+    .audio-notification {
+        bottom: 10px;
+        right: 10px;
+        left: 10px;
+        padding: 12px 15px;
+        font-size: 0.9rem;
+    }
+
+    /* Error Messages */
+    .error {
+        padding: 12px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .error-close {
+        align-self: flex-end;
+        margin-top: -5px;
+    }
+}
+
+/* Small Mobile Styles */
+@media (max-width: 480px) {
+    .header h1 {
+        font-size: 1.8rem;
+    }
+
+    .card {
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+
+    /* Upload/Mic Areas */
+    .upload-area,
+    .mic-area {
+        padding: 30px 10px;
+    }
+
+    .upload-icon,
+    .mic-icon {
+        font-size: 2.5rem;
+    }
+
+    .upload-text,
+    .mic-text {
+        font-size: 0.95rem;
+    }
+
+    .upload-subtext,
+    .mic-subtext {
+        font-size: 0.85rem;
+    }
+
+    /* Recording Timer */
+    .recording-timer {
+        font-size: 1.5rem;
+    }
+
+    /* Action Buttons */
+    .transcribe-btn {
+        padding: 10px 20px;
+        font-size: 0.95rem;
+    }
+
+    /* Statistics */
+    .stats {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .stat-item {
+        padding: 10px;
+    }
+
+    .stat-value {
+        font-size: 1.2rem;
+    }
+
+    .stat-label {
+        font-size: 0.85rem;
+    }
+
+    /* Segments */
+    .segments {
+        padding: 15px;
+        max-height: 300px;
+    }
+
+    .segment-item {
+        padding: 12px;
+        margin-bottom: 12px;
+    }
+
+    .segment-text {
+        font-size: 0.95rem;
+        line-height: 1.4;
+    }
+
+    /* Timestamps */
+    .timestamps {
+        padding: 15px;
+        max-height: 250px;
+    }
+
+    .timestamp-word {
+        font-size: 0.9rem;
+    }
+
+    .timestamp-time {
+        font-size: 0.8rem;
+    }
+
+    /* Download Section */
+    .download-section {
+        padding: 15px;
+    }
+
+    .download-btn {
+        padding: 8px 16px;
+        font-size: 0.9rem;
+    }
+
+    /* Speaker Summary */
+    .speaker-summary {
+        padding: 15px;
+    }
+
+    .speaker-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .speaker-stats {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    /* Form Elements */
+    .form-control {
+        padding: 10px 12px;
+        font-size: 0.95rem;
+    }
+
+    .control-group label {
+        font-size: 0.9rem;
+    }
+
+    .form-text {
+        font-size: 0.8rem;
+    }
+
+    /* Toggle Switch */
+    .toggle-switch {
+        width: 50px;
+        height: 28px;
+    }
+
+    .slider:before {
+        height: 22px;
+        width: 22px;
+        left: 3px;
+        bottom: 3px;
+    }
+
+    input:checked + .slider:before {
+        transform: translateX(22px);
+    }
+}
+
+/* Landscape Phone Styles */
+@media (max-width: 768px) and (orientation: landscape) {
+    .header {
+        margin-bottom: 20px;
+    }
+
+    .header h1 {
+        font-size: 1.8rem;
+        margin-bottom: 5px;
+    }
+
+    .header p {
+        font-size: 0.9rem;
+    }
+
+    .card {
+        padding: 20px;
+    }
+
+    .upload-area,
+    .mic-area {
+        padding: 30px 20px;
+    }
+
+    .segments {
+        max-height: 250px;
+    }
+
+    .timestamps {
+        max-height: 200px;
+    }
+}
+
+/* Touch Device Optimizations */
+@media (hover: none) and (pointer: coarse) {
+    /* Larger touch targets */
+    .btn,
+    .transcribe-btn,
+    .download-btn,
+    .play-button {
+        min-height: 44px;
+        min-width: 44px;
+    }
+
+    .tab-button {
+        min-height: 44px;
+        padding: 12px 20px;
+    }
+
+    .speaker-label {
+        min-height: 32px;
+        padding: 6px 12px;
+    }
+
+    /* Remove hover effects */
+    .upload-area:hover,
+    .mic-area:hover,
+    .segment-item:hover,
+    .btn:hover,
+    .transcribe-btn:hover,
+    .download-btn:hover,
+    .play-button:hover {
+        transform: none;
+        box-shadow: none;
+    }
+
+    /* Adjust focus states for touch */
+    *:focus {
+        outline: 3px solid #667eea;
+        outline-offset: 2px;
+    }
+}
+
+/* High DPI Displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    .upload-icon,
+    .mic-icon {
+        /* Ensure icons are crisp on high DPI displays */
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+}
+
+/* Print Styles */
+@media print {
+    body {
+        background: white;
+        padding: 0;
+    }
+
+    .header,
+    .upload-area,
+    .mic-area,
+    .controls,
+    .transcribe-buttons,
+    .download-section,
+    .loading,
+    .error,
+    .status-indicator,
+    .audio-notification {
+        display: none !important;
+    }
+
+    .card {
+        background: white;
+        box-shadow: none;
+        border: 1px solid #000;
+        padding: 20px;
+    }
+
+    .results {
+        display: block !important;
+    }
+
+    .transcription-text {
+        background: white;
+        border: 1px solid #000;
+        color: #000;
+    }
+
+    .segments,
+    .timestamps,
+    .speaker-summary {
+        background: white;
+        border: 1px solid #000;
+    }
+
+    .play-button {
+        display: none;
+    }
+
+    .segment-header {
+        border-bottom: 1px solid #ccc;
+        padding-bottom: 5px;
+        margin-bottom: 10px;
+    }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+
+    .wave-bar {
+        animation: none;
+    }
+
+    .play-button.playing {
+        animation: none;
+    }
+
+    .mic-area.recording {
+        animation: none;
+    }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+    /* Note: This is a basic dark mode implementation */
+    /* In a full implementation, you'd want more comprehensive dark mode styles */
+
+    .card {
+        background: rgba(30, 30, 30, 0.95);
+        color: #e0e0e0;
+    }
+
+    .transcription-text {
+        background: #2a2a2a;
+        color: #e0e0e0;
+    }
+
+    .segments,
+    .timestamps,
+    .speaker-summary,
+    .file-info,
+    .recorded-info {
+        background: #2a2a2a;
+        color: #e0e0e0;
+    }
+
+    .segment-item {
+        background: #333;
+        border-color: #444;
+        color: #e0e0e0;
+    }
+
+    .form-control {
+        background: #333;
+        border-color: #555;
+        color: #e0e0e0;
+    }
+
+    .stat-item {
+        background: #333;
+        color: #e0e0e0;
+    }
+}

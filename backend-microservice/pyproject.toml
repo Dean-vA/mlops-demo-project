@@ -21,13 +21,19 @@ uvicorn = ">=0.34.2,<0.35.0"
 nemo-toolkit = {extras = ["asr"], version = "^2.3.0"}
 python-multipart = "^0.0.20"
 httpx = "^0.28.1"
-torch = ">=2.7.0,<3.0.0" # Upper bound added to ensure compatibility with future versions
 transformers = "^4.52.3"
 accelerate = "^1.7.0"
 azureml-core = "^1.60.0"
 azure-ai-ml = "^1.27.1"
 azure-identity = "^1.23.0"
 poetry2conda = "^0.3.0"
+omegaconf = "^2.3.0"
+scikit-learn = "^1.5.0"  # For clustering algorithms
+scipy = "^1.14.0"  # For signal processing
+librosa = "^0.10.0"  # For audio processing utilities
+pyannote-metrics = "^3.2.0"  # For diarization evaluation metrics
+openai = "^1.84.0"
+python-dotenv = "^1.1.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "^25.1.0"
@@ -40,6 +46,9 @@ pre-commit = "^4.2.0"
 openai = "^1.82.0"
 dotenv = "^0.9.9"
 python-dotenv = "^1.1.0"
+memory-profiler = "^0.61.0"
+psutil = "^7.0.0"
+py-spy = "^0.4.0"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
