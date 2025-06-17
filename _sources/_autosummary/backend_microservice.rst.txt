@@ -19,6 +19,8 @@
    main
    model
    register_model
+   score
+   summarise
    summarization
    train
    transcription
