@@ -11,6 +11,7 @@ from pydantic import BaseModel
 
 from .diarization import diarize_audio, is_diarizer_loaded, load_diarizer
 from .gpu_utils import get_gpu_info
+from .lora_service import get_lora_service, is_lora_available
 from .summarization import generate_session_summary, is_summarization_available
 from .transcription import (
     add_speaker_tags_to_segments,
@@ -122,6 +123,7 @@ async def health():
         "status": "healthy",
         "model_loaded": is_model_loaded(),
         "diarization_model_loaded": is_diarizer_loaded(),
+        "lora_available": is_lora_available(),
         "gpu_available": gpu_info["cuda_available"],
         "device": gpu_info["device"],
         "gpu_name": gpu_info.get("gpu_name", "N/A"),
@@ -340,6 +342,41 @@ async def summarize_session(request: SummarizationRequest):
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Summarization error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/summarize_lora")
+async def summarize_with_lora(request: SummarizationRequest):
+    """Generate a D&D session summary using the LoRA model on Azure ML.
+
+    Args:
+        request: SummarizationRequest containing segments and optional speaker names
+
+    Returns:
+        dict: Generated summary with sections and metadata
+    """
+    try:
+        # Check if LoRA service is available
+        if not is_lora_available():
+            raise HTTPException(status_code=503, detail="LoRA summarization not available. Azure ML endpoint not configured.")
+
+        # Validate input
+        if not request.segments:
+            raise HTTPException(status_code=400, detail="No segments provided for summarization")
+
+        logger.info(f"Generating LoRA summary for {len(request.segments)} segments")
+
+        # Get LoRA service and generate summary
+        lora_service = get_lora_service()
+        summary_result = await lora_service.generate_session_summary(segments=request.segments, speaker_names=request.speaker_names)
+
+        return summary_result
+
+    except ValueError as e:
+        logger.error(f"LoRA summarization validation error: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"LoRA summarization error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
