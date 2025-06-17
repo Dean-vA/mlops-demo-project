@@ -16,6 +16,7 @@
    evaluate
    gpu_utils
    load_data
+   lora_service
    main
    model
    register_model
