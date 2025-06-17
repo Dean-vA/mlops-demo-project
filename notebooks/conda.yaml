@@ -32,3 +32,4 @@ dependencies:
   - datasets
   - python-dotenv
   - bitsandbytes
+  - azureml-inference-server-http
