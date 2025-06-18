@@ -1,7 +1,29 @@
 // Application Configuration
 window.AppConfig = {
     API: {
-        BASE_URL: 'http://194.171.191.226:3569',
+        BASE_URL: (() => {
+            const hostname = window.location.hostname;
+
+            // Local development
+            if (hostname === 'localhost' || hostname === '127.0.0.1') {
+                return 'http://localhost:3569';
+            }
+
+            // Local network IPs (226, 227, 228, etc.)
+            if (hostname.startsWith('194.171.191.')) {
+                return `http://${hostname}:3569`;
+            }
+
+            // Azure Container Apps - detect backend URL from frontend URL
+            if (hostname.includes('azurecontainerapps.io')) {
+                // Replace 'frontend' with 'backend' in the hostname
+                const backendHostname = hostname.replace('frontend', 'backend');
+                return `https://${backendHostname}`;
+            }
+
+            // Default fallback
+            return 'http://194.171.191.227:3569';
+        })(),
         ENDPOINTS: {
             HEALTH: '/health',
             GPU_INFO: '/gpu-info',
