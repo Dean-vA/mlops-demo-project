@@ -1,7 +1,7 @@
 // Application Configuration
 window.AppConfig = {
     API: {
-        BASE_URL: 'http://194.171.191.226:3569',
+        BASE_URL: 'http://194.171.191.227:3569',
         ENDPOINTS: {
             HEALTH: '/health',
             GPU_INFO: '/gpu-info',
